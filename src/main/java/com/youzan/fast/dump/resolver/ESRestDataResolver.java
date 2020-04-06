@@ -35,7 +35,6 @@ public class ESRestDataResolver extends BaseDataResolve {
 
     public ESRestDataResolver(FastReindexRequest.FastReindexRemoteInfo remoteInfo, String mode, int speedLimit) throws Exception {
         super(speedLimit);
-        LOGGER.info("rest resolver");
         esClient = new ESRestClient(remoteInfo).getClient();
         this.mode = IndexModeEnum.findModeEnum(mode);
     }

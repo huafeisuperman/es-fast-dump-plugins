@@ -56,6 +56,7 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setOneFileThreadNum(in.readInt());
         fastReindexRequest.setPerNodeSpeedLimit(in.readInt());
         fastReindexRequest.setThreadNum(in.readInt());
+        fastReindexRequest.setQuery(in.readOptionalString());
         fastReindexRequest.setRemoteInfo(in.readOptionalWriteable(FastReindexRequest.FastReindexRemoteInfo::new));
     }
 
@@ -73,6 +74,7 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeInt(fastReindexRequest.getOneFileThreadNum());
         out.writeInt(fastReindexRequest.getPerNodeSpeedLimit());
         out.writeInt(fastReindexRequest.getThreadNum());
+        out.writeOptionalString(fastReindexRequest.getQuery());
         out.writeOptionalWriteable(fastReindexRequest.getRemoteInfo());
     }
 }

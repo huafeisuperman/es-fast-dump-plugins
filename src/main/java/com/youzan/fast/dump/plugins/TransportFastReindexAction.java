@@ -77,14 +77,10 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
                     fastReindexShardRequest.setFile(nodeIdFile.get(key));
                     fastReindexResponse.setTotalFile(fastReindexResponse.getTotalFile() + nodeIdFile.get(key).size());
                     fastReindexShardRequest.setNodeId(key.toString());
-                    logger.info(counter.get() + "......" + key.toString() + fastReindexShardRequest);
                     request.setShouldStoreResult(true);
                     transportNodeFastReindexAction.execute(task, fastReindexShardRequest, new ActionListener<FastReindexShardResponse>() {
                         @Override
                         public void onResponse(FastReindexShardResponse fastReindexShardResponse) {
-                            boolean isFinish = true;
-                            logger.info(key.toString() + "   " + counter.get());
-                            logger.info("ppppppp" + fastReindexShardResponse.getFileReadStatusList().size());
                             fastReindexResponse.getMap().put(key.toString(), fastReindexShardResponse.getFileReadStatusList());
                             if (counter.decrementAndGet() == 0) {
                                 finishHim();

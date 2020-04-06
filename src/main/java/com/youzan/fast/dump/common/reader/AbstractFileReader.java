@@ -42,6 +42,8 @@ public abstract class AbstractFileReader implements BaseLogger,FileReader {
 
     protected List<Rule> ruleList = new ArrayList<>();
 
+    protected String query;
+
     private FastReindexTask task;
 
     public AbstractFileReader(List<String> files, FastReindexTask task) {
@@ -74,8 +76,13 @@ public abstract class AbstractFileReader implements BaseLogger,FileReader {
         return this;
     }
 
+    public AbstractFileReader setQuery(String query) {
+        this.query = query;
+        return this;
+    }
+
     public AbstractFileReader initRule(String targetIndexType, String className,
-                                     String field, String rules) throws Exception {
+                                       String field, String rules) throws Exception {
         if (targetIndexType.equals(IndexTypeEnum.CUSTOM.getIndexType())) {
             isCustomType = true;
             String[] fieldArray = field.split(":");

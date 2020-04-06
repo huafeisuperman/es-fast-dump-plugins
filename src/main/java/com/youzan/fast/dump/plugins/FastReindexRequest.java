@@ -1,5 +1,7 @@
 package com.youzan.fast.dump.plugins;
 
+import com.alibaba.fastjson.JSON;
+import com.youzan.fast.dump.util.QueryParserHelper;
 import lombok.Data;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -34,6 +36,8 @@ public class FastReindexRequest extends ActionRequest {
 
     protected String targetIndex;
 
+    protected String query;
+
     protected FastReindexRemoteInfo remoteInfo;
 
     protected String targetResolver;
@@ -60,6 +64,10 @@ public class FastReindexRequest extends ActionRequest {
     @Override
     public Task createTask(long id, String type, String action, TaskId parentTaskId) {
         return new FastReindexTask(id, type, action, getDescription(), parentTaskId);
+    }
+
+    public void checkQuery() {
+        QueryParserHelper.parser(JSON.parseObject(query));
     }
 
     @Data

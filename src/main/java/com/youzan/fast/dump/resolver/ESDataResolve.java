@@ -31,7 +31,6 @@ public class ESDataResolve extends BaseDataResolve {
 
     public ESDataResolve(Client client, String mode, int speedLimit) throws Exception {
         super(speedLimit);
-        LOGGER.info("transport resolver");
         esClient = new ESTransportClient(client).getClient();
         this.mode = IndexModeEnum.findModeEnum(mode);
     }

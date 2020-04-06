@@ -214,12 +214,12 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 resolve = DataResolveFactory.getDataResolve(request, client);
                 FileReader fileReader = new LuceneFileReader(request.getFile(), task).
                         setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
+                        setQuery(request.getFastReindexRequest().getQuery()).
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
                         setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode()));
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
                 ResponseListener rl = new TransportNodeFastReindexAction.AsyncShardAction.ResponseListener();
-                logger.info("finish:" + response.isFinish());
                 rl.onResponse(response);
             } catch (Exception e) {
                 Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller

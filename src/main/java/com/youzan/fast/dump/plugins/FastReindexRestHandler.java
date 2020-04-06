@@ -12,6 +12,9 @@ import org.elasticsearch.rest.action.RestBuilderListener;
 import org.elasticsearch.tasks.LoggingTaskListener;
 import org.elasticsearch.tasks.Task;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /**
  * Description:
  *
@@ -57,6 +60,12 @@ public class FastReindexRestHandler extends BaseRestHandler {
         fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, "1000").toString()));
         fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, "1").toString()));
         fastReindexRequest.setOneFileThreadNum(Integer.parseInt(source.getOrDefault(ONE_FILE_THREAD_NUM, "1").toString()));
+        AccessController.doPrivileged(
+                (PrivilegedAction<Void>) () -> {
+                    fastReindexRequest.setQuery(source.getString("query"));
+                    fastReindexRequest.checkQuery();
+                    return null;
+                });
 
         fastReindexRequest.setTargetIndex(target.getString(TARGET_INDEX));
         fastReindexRequest.setTargetIndexType(target.getOrDefault(TARGET_INDEX_TYPE, IndexTypeEnum.ALL_TO_ALL.getIndexType()).toString());

@@ -7,12 +7,14 @@ import com.youzan.fast.dump.common.StatusEnum;
 import com.youzan.fast.dump.common.rules.Rule;
 import com.youzan.fast.dump.plugins.FastReindexTask;
 import com.youzan.fast.dump.resolver.DataResolve;
+import com.youzan.fast.dump.util.QueryParserHelper;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Bits;
-import org.elasticsearch.tasks.CancellableTask;
-import org.elasticsearch.tasks.Task;
+import org.apache.lucene.util.FixedBitSet;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -47,31 +49,51 @@ public class LuceneFileReader extends AbstractFileReader {
         try {
             fileReadList.add(fileReadStatus);
             reader = (StandardDirectoryReader) DirectoryReader.open(FSDirectory.open(Paths.get(indexTypeFile[2])));
+            FixedBitSet bitSet = null;
+            boolean hasDoc = true;
+            if (null != query) {
+                IndexSearcher searcher = new IndexSearcher(reader);
+                TopDocs topDocs = searcher.search(QueryParserHelper.parser(JSON.parseObject(query)),
+                        Integer.MAX_VALUE);
+                if (topDocs.totalHits > 0) {
+                    bitSet = new FixedBitSet(reader.maxDoc());
+                } else {
+                    hasDoc = false;
+                    LOGGER.info("not found result:" + query);
+                }
+                for (int i = 0; i < topDocs.scoreDocs.length; i++) {
+                    bitSet.set(topDocs.scoreDocs[i].doc);
+                }
+            }
+
             fileReadStatus.setTotalCount(reader.maxDoc());
-            List<LeafReaderContext> readList = reader.getContext().leaves();
-            int[] starts = new int[readList.size() + 1];
-            int maxDoc = 0;
-            for (int i = 0; i < readList.size(); i++) {
-                starts[i] = maxDoc;
-                IndexReader r = readList.get(i).reader();
-                maxDoc += (long) r.maxDoc();
-            }
-            starts[readList.size()] = Math.toIntExact(maxDoc);
-            int intervalSize = maxDoc / OneFileThreadNum;
-            int start = 0;
-            List<Future> futures = new ArrayList<>();
-            for (int i = 0; i < OneFileThreadNum; i++) {
-                futures.add(pool.submit(new DealDocument(start, start + intervalSize, starts, readList,
-                        dataResolve, fileReadStatus, indexTypeFile[0], indexTypeFile[1], indexTypeFile[3])));
-                start = start + intervalSize;
-            }
-            if (start < maxDoc) {
-                futures.add(pool.submit(new DealDocument(start, maxDoc, starts, readList,
-                        dataResolve, fileReadStatus, indexTypeFile[0], indexTypeFile[1], indexTypeFile[3])));
-            }
-            pool.shutdown();
-            for (Future future : futures) {
-                future.get();
+
+            if (hasDoc) {
+                List<LeafReaderContext> readList = reader.getContext().leaves();
+                int[] starts = new int[readList.size() + 1];
+                int maxDoc = 0;
+                for (int i = 0; i < readList.size(); i++) {
+                    starts[i] = maxDoc;
+                    IndexReader r = readList.get(i).reader();
+                    maxDoc += (long) r.maxDoc();
+                }
+                starts[readList.size()] = Math.toIntExact(maxDoc);
+                int intervalSize = maxDoc / OneFileThreadNum;
+                int start = 0;
+                List<Future> futures = new ArrayList<>();
+                for (int i = 0; i < OneFileThreadNum; i++) {
+                    futures.add(pool.submit(new DealDocument(start, start + intervalSize, starts, readList,
+                            dataResolve, fileReadStatus, indexTypeFile[0], indexTypeFile[1], indexTypeFile[3], bitSet)));
+                    start = start + intervalSize;
+                }
+                if (start < maxDoc) {
+                    futures.add(pool.submit(new DealDocument(start, maxDoc, starts, readList,
+                            dataResolve, fileReadStatus, indexTypeFile[0], indexTypeFile[1], indexTypeFile[3], bitSet)));
+                }
+                pool.shutdown();
+                for (Future future : futures) {
+                    future.get();
+                }
             }
             fileReadStatus.setStatus(StatusEnum.SUCCESS.getStatus());
         } catch (Exception e) {
@@ -100,12 +122,14 @@ public class LuceneFileReader extends AbstractFileReader {
         private String index;
         private String type;
         private String sourceIndex;
+        private FixedBitSet bitSet;
 
 
         public DealDocument(int start, int end, int starts[],
                             List<LeafReaderContext> readList,
                             DataResolve dataResolve, FileReadStatus fileReadStatus,
-                            String index, String type, String sourceIndex) {
+                            String index, String type, String sourceIndex,
+                            FixedBitSet bitSet) {
             this.readList = readList;
             this.start = start;
             this.end = end;
@@ -115,6 +139,7 @@ public class LuceneFileReader extends AbstractFileReader {
             this.index = index;
             this.type = type;
             this.sourceIndex = sourceIndex;
+            this.bitSet = bitSet;
         }
 
         @Override
@@ -123,6 +148,10 @@ public class LuceneFileReader extends AbstractFileReader {
             long currentCount = 0;
             for (int i = start; i < end; i++) {
                 currentCount++;
+                //判断doc_id是否再查询的bitset中
+                if (null != bitSet && !bitSet.get(i)) {
+                    continue;
+                }
                 int subIndex = ReaderUtil.subIndex(i, starts);
                 LeafReader reader = readList.get(subIndex).reader();
                 int docId = i - this.starts[subIndex];
