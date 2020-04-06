@@ -1,6 +1,7 @@
 package com.youzan.fast.dump.plugins;
 
 import com.youzan.fast.dump.common.IndexModeEnum;
+import com.youzan.fast.dump.common.reader.AbstractFileReader;
 import com.youzan.fast.dump.common.reader.FileReader;
 import com.youzan.fast.dump.common.reader.LuceneFileReader;
 import com.youzan.fast.dump.resolver.DataResolve;
@@ -53,7 +54,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
         super(settings, ACTION_NAME, threadPool, actionFilters,
                 indexNameExpressionResolver, transportService.getTaskManager());
         this.transportService = transportService;
-        this.client =client;
+        this.client = client;
         transportService.registerRequestHandler(actionName, FastReindexShardRequest::new, ThreadPool.Names.GENERIC, new ShardOperationTransportHandler());
         this.clusterService = clusterService;
     }
@@ -216,7 +217,12 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                         setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
                         setQuery(request.getFastReindexRequest().getQuery()).
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
-                        setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode()));
+                        setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
+                        initRule(request.getFastReindexRequest().getTargetIndexType(),
+                        request.getFastReindexRequest().getRuleInfo().getRuleName(),
+                        request.getFastReindexRequest().getRuleInfo().getField(),
+                        request.getFastReindexRequest().getRuleInfo().getRules());
+
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
                 ResponseListener rl = new TransportNodeFastReindexAction.AsyncShardAction.ResponseListener();

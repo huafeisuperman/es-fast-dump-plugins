@@ -40,6 +40,8 @@ public class FastReindexRequest extends ActionRequest {
 
     protected FastReindexRemoteInfo remoteInfo;
 
+    protected RuleInfo ruleInfo;
+
     protected String targetResolver;
 
     protected int perNodeSpeedLimit = 50000;
@@ -68,6 +70,36 @@ public class FastReindexRequest extends ActionRequest {
 
     public void checkQuery() {
         QueryParserHelper.parser(JSON.parseObject(query));
+    }
+
+    @Data
+    public static class RuleInfo implements Writeable {
+
+        protected String ruleName;
+
+        protected String field;
+
+        protected String rules;
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(ruleName);
+            out.writeString(field);
+            out.writeString(rules);
+        }
+
+        public RuleInfo() {
+
+        }
+
+        /**
+         * Read from a stream.
+         */
+        public RuleInfo(StreamInput in) throws IOException {
+            ruleName = in.readString();
+            field = in.readString();
+            rules= in.readString();
+        }
     }
 
     @Data

@@ -58,6 +58,7 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setThreadNum(in.readInt());
         fastReindexRequest.setQuery(in.readOptionalString());
         fastReindexRequest.setRemoteInfo(in.readOptionalWriteable(FastReindexRequest.FastReindexRemoteInfo::new));
+        fastReindexRequest.setRuleInfo(in.readOptionalWriteable(FastReindexRequest.RuleInfo::new));
     }
 
     @Override
@@ -76,5 +77,6 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeInt(fastReindexRequest.getThreadNum());
         out.writeOptionalString(fastReindexRequest.getQuery());
         out.writeOptionalWriteable(fastReindexRequest.getRemoteInfo());
+        out.writeOptionalWriteable(fastReindexRequest.getRuleInfo());
     }
 }

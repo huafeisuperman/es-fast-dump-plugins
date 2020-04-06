@@ -43,6 +43,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String THREAD_NUM = "thread_num";
     private static final String ONE_FILE_THREAD_NUM = "one_file_thread_num";
     private static final String TARGET_INDEX_TYPE = "target_index_type";
+    private static final String PACKAGE_NAME = "com.youzan.fast.dump.common.rules.";
 
 
     @Override
@@ -54,6 +55,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
         JSONObject source = param.getJSONObject("source");
         JSONObject target = param.getJSONObject("target");
         JSONObject remoteInfo = target.getJSONObject("remote_info");
+        JSONObject rules = param.getJSONObject("rules");
 
         fastReindexRequest.setSourceIndex(source.getString(SOURCE_INDEX));
         fastReindexRequest.setMode(source.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
@@ -70,6 +72,13 @@ public class FastReindexRestHandler extends BaseRestHandler {
         fastReindexRequest.setTargetIndex(target.getString(TARGET_INDEX));
         fastReindexRequest.setTargetIndexType(target.getOrDefault(TARGET_INDEX_TYPE, IndexTypeEnum.ALL_TO_ALL.getIndexType()).toString());
         fastReindexRequest.setTargetResolver(target.getString(TARGET_RESOLVER));
+
+        if (null != rules) {
+            FastReindexRequest.RuleInfo ruleInfo = new FastReindexRequest.RuleInfo();
+            ruleInfo.setRuleName(PACKAGE_NAME + rules.getString("rule_name"));
+            ruleInfo.setField(rules.getString("field"));
+            ruleInfo.setRules(rules.getString("rule_value"));
+        }
 
 
         if (null != remoteInfo) {
