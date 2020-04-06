@@ -26,10 +26,13 @@ public class FastReindexRestHandler extends BaseRestHandler {
     public FastReindexRestHandler(Settings settings, RestController restController) {
         super(settings);
         restController.registerHandler(RestRequest.Method.POST, "/fast/index", this);
-        restController.registerHandler(RestRequest.Method.GET, "/fast/processInfo", this);
     }
 
 
+    private static final String SOURCE = "source";
+    private static final String TARGET = "target";
+    private static final String REMOTE_INFO = "remote_info";
+    private static final String RULES = "rules";
     private static final String SOURCE_INDEX = "source_index";
     private static final String MODE = "mode";
     private static final String TARGET_INDEX = "target_index";
@@ -44,6 +47,14 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String ONE_FILE_THREAD_NUM = "one_file_thread_num";
     private static final String TARGET_INDEX_TYPE = "target_index_type";
     private static final String PACKAGE_NAME = "com.youzan.fast.dump.common.rules.";
+    private static final String RULE_NAME = "rule_name";
+    private static final String FIELD = "field";
+    private static final String RULE_VALUE = "rule_value";
+    private static final int DEFAULT_BATCH_SIZE = 1000;
+    private static final int DEFAULT_THREAD_NUM = 1;
+    private static final int DEFAULT_ONE_FILE_THREAD_NUM = 1;
+    private static final String HEADERS = "headers";
+    private static final String WAIT_FOR_COMPLETION = "wait_for_completion";
 
 
     @Override
@@ -52,16 +63,16 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
         JSONObject param = JSON.parseObject(request.content().utf8ToString());
 
-        JSONObject source = param.getJSONObject("source");
-        JSONObject target = param.getJSONObject("target");
-        JSONObject remoteInfo = target.getJSONObject("remote_info");
-        JSONObject rules = param.getJSONObject("rules");
+        JSONObject source = param.getJSONObject(SOURCE);
+        JSONObject target = param.getJSONObject(TARGET);
+        JSONObject remoteInfo = target.getJSONObject(REMOTE_INFO);
+        JSONObject rules = param.getJSONObject(RULES);
 
         fastReindexRequest.setSourceIndex(source.getString(SOURCE_INDEX));
         fastReindexRequest.setMode(source.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
-        fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, "1000").toString()));
-        fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, "1").toString()));
-        fastReindexRequest.setOneFileThreadNum(Integer.parseInt(source.getOrDefault(ONE_FILE_THREAD_NUM, "1").toString()));
+        fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, DEFAULT_BATCH_SIZE).toString()));
+        fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, DEFAULT_THREAD_NUM).toString()));
+        fastReindexRequest.setOneFileThreadNum(Integer.parseInt(source.getOrDefault(ONE_FILE_THREAD_NUM, DEFAULT_ONE_FILE_THREAD_NUM).toString()));
         AccessController.doPrivileged(
                 (PrivilegedAction<Void>) () -> {
                     fastReindexRequest.setQuery(source.getString("query"));
@@ -75,9 +86,9 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
         if (null != rules) {
             FastReindexRequest.RuleInfo ruleInfo = new FastReindexRequest.RuleInfo();
-            ruleInfo.setRuleName(PACKAGE_NAME + rules.getString("rule_name"));
-            ruleInfo.setField(rules.getString("field"));
-            ruleInfo.setRules(rules.getString("rule_value"));
+            ruleInfo.setRuleName(PACKAGE_NAME + rules.getString(RULE_NAME));
+            ruleInfo.setField(rules.getString(FIELD));
+            ruleInfo.setRules(rules.getString(RULE_VALUE));
         }
 
 
@@ -88,15 +99,15 @@ public class FastReindexRestHandler extends BaseRestHandler {
             fastReindexRemoteInfo.setClusterName(remoteInfo.getString(TARGET_NAME));
             fastReindexRemoteInfo.setUsername(remoteInfo.getString(USERNAME));
             fastReindexRemoteInfo.setPassword(remoteInfo.getString(PASSWORD));
-            if (remoteInfo.containsKey("headers")) {
-                fastReindexRemoteInfo.setHeaders(remoteInfo.getJSONObject("headers").getInnerMap());
+            if (remoteInfo.containsKey(HEADERS)) {
+                fastReindexRemoteInfo.setHeaders(remoteInfo.getJSONObject(HEADERS).getInnerMap());
             }
 
             fastReindexRequest.setRemoteInfo(fastReindexRemoteInfo);
         }
 
 
-        Boolean waitForCompletion = request.paramAsBoolean("wait_for_completion", true);
+        Boolean waitForCompletion = request.paramAsBoolean(WAIT_FOR_COMPLETION, true);
         fastReindexRequest.setShouldStoreResult(!waitForCompletion);
         logger.info("fast reindex param:[{}]", fastReindexRequest.toString());
 

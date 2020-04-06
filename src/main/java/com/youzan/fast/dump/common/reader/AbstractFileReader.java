@@ -1,14 +1,12 @@
 package com.youzan.fast.dump.common.reader;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.youzan.fast.dump.common.BaseLogger;
 import com.youzan.fast.dump.common.IndexModeEnum;
 import com.youzan.fast.dump.common.IndexTypeEnum;
-import com.youzan.fast.dump.common.StatusEnum;
 import com.youzan.fast.dump.common.rules.Rule;
+import com.youzan.fast.dump.plugins.FastReindexRequest;
 import com.youzan.fast.dump.plugins.FastReindexTask;
 import com.youzan.fast.dump.resolver.DataResolve;
-import org.elasticsearch.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  * @author: huafei
  * @date: 2019.11.20
  */
-public abstract class AbstractFileReader implements BaseLogger,FileReader {
+public abstract class AbstractFileReader implements BaseLogger, FileReader {
 
     protected ConcurrentLinkedQueue<String> queue;
 
@@ -81,13 +79,12 @@ public abstract class AbstractFileReader implements BaseLogger,FileReader {
         return this;
     }
 
-    public AbstractFileReader initRule(String targetIndexType, String className,
-                                       String field, String rules) throws Exception {
+    public AbstractFileReader initRule(String targetIndexType, FastReindexRequest.RuleInfo ruleInfo) throws Exception {
         if (targetIndexType.equals(IndexTypeEnum.CUSTOM.getIndexType())) {
             isCustomType = true;
-            String[] fieldArray = field.split(":");
-            String[] ruleArray = rules.split(":");
-            String[] classNameArray = className.split(":");
+            String[] fieldArray = ruleInfo.getField().split(":");
+            String[] ruleArray = ruleInfo.getRules().split(":");
+            String[] classNameArray = ruleInfo.getRuleName().split(":");
             for (int i = 0; i < classNameArray.length; i++) {
                 ruleList.add((Rule) Class.forName(classNameArray[i]).getConstructor(String.class, String.class).
                         newInstance(fieldArray[i], ruleArray[i]));

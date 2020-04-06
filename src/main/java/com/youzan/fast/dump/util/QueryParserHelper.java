@@ -18,6 +18,17 @@ import java.util.Map;
  */
 public class QueryParserHelper {
 
+    public static final String TERM = "term";
+    public static final String RANGE = "range";
+    public static final String TERMS = "terms";
+    public static final String BOOL = "bool";
+    public static final String MUST = "MUST";
+    public static final String FILTER = "FILTER";
+    public static final String SHOULD = "SHOULD";
+    public static final String MUST_NOT = "MUST_NOT";
+    public static final String MINIMUM_SHOULD_MARCH = "minimum_should_match";
+
+
     public static Query parser(JSONObject queryJson) {
         return new ConstantScoreQuery(buildQuery(queryJson));
     }
@@ -26,17 +37,17 @@ public class QueryParserHelper {
         Map<String, Object> map = queryJson.getInnerMap();
         BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (entry.getKey().equals("term")) {
+            if (entry.getKey().equals(TERM)) {
                 Map.Entry<String, Object> value = ((Map<String, Object>) entry.getValue()).entrySet().iterator().next();
                 booleanQueryBuilder.add(new BooleanClause(new TermQuery(new Term(value.getKey(), value.getValue().toString())),
                         BooleanClause.Occur.MUST));
-            } else if (entry.getKey().equals("range")) {
+            } else if (entry.getKey().equals(RANGE)) {
                 Map.Entry<String, Object> value = ((Map<String, Object>) entry.getValue()).entrySet().iterator().next();
                 JSONObject rangeJs = (JSONObject) value.getValue();
                 booleanQueryBuilder.add(new BooleanClause(LongPoint.newRangeQuery(value.getKey(), rangeJs.getLong("gte"), rangeJs.getLong("lte")),
                         BooleanClause.Occur.MUST));
 
-            } else if (entry.getKey().equals("terms")) {
+            } else if (entry.getKey().equals(TERMS)) {
                 Map.Entry<String, Object> value = ((Map<String, Object>) entry.getValue()).entrySet().iterator().next();
                 List<BytesRef> terms = new ArrayList<>();
                 for (Object o : ((List) value.getValue())) {
@@ -44,24 +55,24 @@ public class QueryParserHelper {
                 }
                 booleanQueryBuilder.add(new BooleanClause(new TermInSetQuery(value.getKey(), terms),
                         BooleanClause.Occur.MUST));
-            } else if (entry.getKey().equals("bool")) {
+            } else if (entry.getKey().equals(BOOL)) {
                 Map<String, Object> value = (Map<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> boolEntry : value.entrySet()) {
                     BooleanClause.Occur occur = null;
                     switch (boolEntry.getKey().toUpperCase()) {
-                        case "MUST":
+                        case MUST:
                             occur = BooleanClause.Occur.MUST;
                             break;
-                        case "FILTER":
+                        case FILTER:
                             occur = BooleanClause.Occur.FILTER;
                             break;
-                        case "SHOULD":
+                        case SHOULD:
                             occur = BooleanClause.Occur.SHOULD;
                             break;
-                        case "MUST_NOT":
+                        case MUST_NOT:
                             occur = BooleanClause.Occur.MUST_NOT;
                             break;
-                        case "minimum_should_match":
+                        case MINIMUM_SHOULD_MARCH:
                             booleanQueryBuilder.setMinimumNumberShouldMatch((int) boolEntry.getValue());
 
                     }

@@ -1,7 +1,6 @@
 package com.youzan.fast.dump.plugins;
 
 import com.youzan.fast.dump.common.IndexModeEnum;
-import com.youzan.fast.dump.common.reader.AbstractFileReader;
 import com.youzan.fast.dump.common.reader.FileReader;
 import com.youzan.fast.dump.common.reader.LuceneFileReader;
 import com.youzan.fast.dump.resolver.DataResolve;
@@ -219,9 +218,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
                         setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
                         initRule(request.getFastReindexRequest().getTargetIndexType(),
-                        request.getFastReindexRequest().getRuleInfo().getRuleName(),
-                        request.getFastReindexRequest().getRuleInfo().getField(),
-                        request.getFastReindexRequest().getRuleInfo().getRules());
+                                request.getFastReindexRequest().getRuleInfo());
 
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
