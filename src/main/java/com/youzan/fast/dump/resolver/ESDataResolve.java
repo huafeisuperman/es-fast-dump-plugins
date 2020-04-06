@@ -1,14 +1,13 @@
 package com.youzan.fast.dump.resolver;
 
 import com.alibaba.fastjson.JSONObject;
-import com.youzan.fast.dump.client.ESClient;
+import com.youzan.fast.dump.client.ESTransportClient;
 import com.youzan.fast.dump.common.IndexModeEnum;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
@@ -26,13 +25,14 @@ import java.util.Set;
  */
 public class ESDataResolve extends BaseDataResolve {
 
-    private TransportClient esClient;
+    private Client esClient;
 
     private IndexModeEnum mode;
 
-    public ESDataResolve(String ip, String port, String name, String mode, int speedLimit) throws Exception {
+    public ESDataResolve(Client client, String mode, int speedLimit) throws Exception {
         super(speedLimit);
-        esClient = new ESClient(ip, port, name).getClient();
+        LOGGER.info("transport resolver");
+        esClient = new ESTransportClient(client).getClient();
         this.mode = IndexModeEnum.findModeEnum(mode);
     }
 
@@ -45,7 +45,7 @@ public class ESDataResolve extends BaseDataResolve {
             String sourceType = record.get("type").toString();
             String id = record.get("_id").toString();
             String route = record.get("route") == null ? null : record.get("route").toString();
-            ((Set)record.get("index")).forEach(index -> {
+            ((Set) record.get("index")).forEach(index -> {
                 IndexRequestBuilder indexRequest = esClient.prepareIndex(index.toString(), sourceType, id).setSource(dataMap).setParent(route);
                 //按照模式来区分不同的索引类型
                 if (mode == IndexModeEnum.CREATE) {

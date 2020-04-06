@@ -33,6 +33,8 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String TARGET_IP = "target_ip";
     private static final String TARGET_PORT = "target_port";
     private static final String TARGET_NAME = "target_name";
+    private static final String USERNAME = "username";
+    private static final String PASSWORD = "password";
     private static final String TARGET_RESOLVER = "target_resolver";
     private static final String BATCH_SIZE = "batch_size";
     private static final String THREAD_NUM = "thread_num";
@@ -46,19 +48,35 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
         JSONObject param = JSON.parseObject(request.content().utf8ToString());
 
-        fastReindexRequest.setSourceIndex(param.getString(SOURCE_INDEX));
-        fastReindexRequest.setMode(param.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
-        fastReindexRequest.setTargetIndex(param.getString(TARGET_INDEX));
-        fastReindexRequest.setBatchSize(Integer.parseInt(param.getOrDefault(BATCH_SIZE, "1000").toString()));
-        fastReindexRequest.setThreadNum(Integer.parseInt(param.getOrDefault(THREAD_NUM, "1").toString()));
-        fastReindexRequest.setOneFileThreadNum(Integer.parseInt(param.getOrDefault(ONE_FILE_THREAD_NUM, "1").toString()));
-        fastReindexRequest.setTargetIndexType(param.getOrDefault(TARGET_INDEX_TYPE, IndexTypeEnum.ALL_TO_ALL.getIndexType()).toString());
-        FastReindexRequest.FastReindexRemoteInfo fastReindexRemoteInfo = new FastReindexRequest.FastReindexRemoteInfo();
-        fastReindexRemoteInfo.setIp(param.getString(TARGET_IP));
-        fastReindexRemoteInfo.setPort(param.getString(TARGET_PORT));
-        fastReindexRemoteInfo.setClusterName(param.getString(TARGET_NAME));
-        fastReindexRequest.setTargetResolver(param.getString(TARGET_RESOLVER));
-        fastReindexRequest.setRemoteInfo(fastReindexRemoteInfo);
+        JSONObject source = param.getJSONObject("source");
+        JSONObject target = param.getJSONObject("target");
+        JSONObject remoteInfo = target.getJSONObject("remote_info");
+
+        fastReindexRequest.setSourceIndex(source.getString(SOURCE_INDEX));
+        fastReindexRequest.setMode(source.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
+        fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, "1000").toString()));
+        fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, "1").toString()));
+        fastReindexRequest.setOneFileThreadNum(Integer.parseInt(source.getOrDefault(ONE_FILE_THREAD_NUM, "1").toString()));
+
+        fastReindexRequest.setTargetIndex(target.getString(TARGET_INDEX));
+        fastReindexRequest.setTargetIndexType(target.getOrDefault(TARGET_INDEX_TYPE, IndexTypeEnum.ALL_TO_ALL.getIndexType()).toString());
+        fastReindexRequest.setTargetResolver(target.getString(TARGET_RESOLVER));
+
+
+        if (null != remoteInfo) {
+            FastReindexRequest.FastReindexRemoteInfo fastReindexRemoteInfo = new FastReindexRequest.FastReindexRemoteInfo();
+            fastReindexRemoteInfo.setIp(remoteInfo.getString(TARGET_IP));
+            fastReindexRemoteInfo.setPort(remoteInfo.getInteger(TARGET_PORT));
+            fastReindexRemoteInfo.setClusterName(remoteInfo.getString(TARGET_NAME));
+            fastReindexRemoteInfo.setUsername(remoteInfo.getString(USERNAME));
+            fastReindexRemoteInfo.setPassword(remoteInfo.getString(PASSWORD));
+            if (remoteInfo.containsKey("headers")) {
+                fastReindexRemoteInfo.setHeaders(remoteInfo.getJSONObject("headers").getInnerMap());
+            }
+
+            fastReindexRequest.setRemoteInfo(fastReindexRemoteInfo);
+        }
+
 
         Boolean waitForCompletion = request.paramAsBoolean("wait_for_completion", true);
         fastReindexRequest.setShouldStoreResult(!waitForCompletion);

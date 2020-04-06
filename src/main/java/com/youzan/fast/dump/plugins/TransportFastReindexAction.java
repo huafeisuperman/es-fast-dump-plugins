@@ -8,6 +8,7 @@ import com.youzan.fast.dump.resource.FileResource;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -39,12 +40,14 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
     private ClusterService clusterService;
     private TransportNodeFastReindexAction transportNodeFastReindexAction;
     private long startTime;
+    private Client client;
 
     @Inject
     public TransportFastReindexAction(Settings settings,
                                       ThreadPool threadPool,
                                       ClusterService clusterService,
                                       ActionFilters actionFilters,
+                                      Client client,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       TransportService transportService,
                                       TransportNodeFastReindexAction transportNodeFastReindexAction) {
@@ -52,6 +55,7 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
         super(settings, FastReindexAction.NAME, threadPool, transportService, actionFilters, indexNameExpressionResolver,
                 FastReindexRequest::new);
         this.clusterService = clusterService;
+        this.client = client;
         this.transportNodeFastReindexAction = transportNodeFastReindexAction;
     }
 
@@ -59,14 +63,10 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
     protected void doExecute(Task task, final FastReindexRequest request, ActionListener<FastReindexResponse> listener) {
         try {
             startTime = System.currentTimeMillis();
-            String clusterName = clusterService.getClusterName().value();
-            String ip = clusterService.localNode().getHostAddress();
-            String port = clusterService.getSettings().get("transport.tcp.port");
-            if (null == port) {
-                port = "9300";
-            }
+
             FileResource fileResource = new ESFileResource();
-            ArrayListMultimap nodeIdFile = fileResource.getSlaveFile(request.getSourceIndex().split(","), ip, port, clusterName, request.getTargetIndexType(), request.getTargetIndex());
+            ArrayListMultimap nodeIdFile = fileResource.getSlaveFile(request.getSourceIndex().split(","), client,
+                    request.getTargetIndexType(), request.getTargetIndex());
 
             if (nodeIdFile.size() > 0) {
                 final AtomicInteger counter = new AtomicInteger(nodeIdFile.keySet().size());

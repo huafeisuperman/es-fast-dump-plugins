@@ -2,7 +2,7 @@ package com.youzan.fast.dump.resource;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.collect.ArrayListMultimap;
-import com.youzan.fast.dump.client.ESClient;
+import com.youzan.fast.dump.client.ESTransportClient;
 import com.youzan.fast.dump.common.IndexTypeEnum;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodeResponse;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
@@ -10,12 +10,11 @@ import org.elasticsearch.action.admin.indices.flush.FlushResponse;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.ShardRouting;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import static com.youzan.fast.dump.common.IndexTypeEnum.ONE_TO_ONE;
 
 /**
  * Description:
@@ -36,9 +35,8 @@ public class ESFileResource implements FileResource {
      * @throws Exception 获取资源数失败
      */
     @Override
-    public ArrayListMultimap getSlaveFile(String indices[], String sourceEsIp,
-                                           String sourceEsPort, String sourceEsName, String targetIndexType, String targetIndex) throws Exception {
-        ESClient esClient = new ESClient(sourceEsIp, sourceEsPort, sourceEsName);
+    public ArrayListMultimap getSlaveFile(String indices[], Client client, String targetIndexType, String targetIndex) throws Exception {
+        ESTransportClient esClient = new ESTransportClient(client);
         List<ClusterStatsNodeResponse> response = esClient.getClient().
                 admin().cluster().prepareClusterStats().get().getNodes();
         Set<String> idSet = new HashSet<>();
@@ -69,7 +67,7 @@ public class ESFileResource implements FileResource {
                     String tmpTargetIndex = indexMapping.containsKey(shardRouting.getIndexName()) ?
                             indexMapping.get(shardRouting.getIndexName()) : shardRouting.getIndexName();
                     queue.add(shardRouting.index().getUUID() + ":" +
-                            shardRouting.getId() + "," +  tmpTargetIndex + ":" +
+                            shardRouting.getId() + "," + tmpTargetIndex + ":" +
                             indexAndType.get(shardRouting.getIndexName()) + ":" + path + ":" + shardRouting.getIndexName());
                 }
             }
@@ -107,7 +105,7 @@ public class ESFileResource implements FileResource {
      * @return Map<String, String> key为source索引，value为目标索引
      * @throws Exception
      */
-    private Map<String, String> getIndexMapping(ESClient esClient, String targetIndexType,
+    private Map<String, String> getIndexMapping(ESTransportClient esClient, String targetIndexType,
                                                 String targetIndex, Map<String, String> indexAndType) throws Exception {
         Map<String, String> indexMapping = new HashMap<>();
         switch (IndexTypeEnum.findIndexTypeEnum(targetIndexType)) {
@@ -152,7 +150,7 @@ public class ESFileResource implements FileResource {
      * @return Map<String, String>,key位index,value为type
      * @throws Exception 获取索引失败
      */
-    private Map<String, String> getIndexAndType(String[] indices, ESClient esClient) throws Exception {
+    private Map<String, String> getIndexAndType(String[] indices, ESTransportClient esClient) throws Exception {
         Map<String, String> indexAndType = new HashMap<>();
         Set<String> indexSet = new HashSet<>();
         for (String index : indices) {
@@ -177,7 +175,7 @@ public class ESFileResource implements FileResource {
         return indexAndType;
     }
 
-    private String getTrueIndex(ESClient esClient, String index) throws Exception {
+    private String getTrueIndex(ESTransportClient esClient, String index) throws Exception {
         String[] trueIndices = esClient.getClient().admin().indices().
                 getAliases(new GetAliasesRequest(index)).
                 get().getAliases().keys().toArray(String.class);

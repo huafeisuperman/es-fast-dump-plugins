@@ -10,6 +10,8 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Description:
@@ -67,7 +69,17 @@ public class FastReindexRequest extends ActionRequest {
 
         protected String clusterName;
 
-        protected String port;
+        protected int port;
+
+        protected Map<String, Object> headers = new HashMap<>();
+
+        protected String username;
+
+        protected String password;
+
+        protected long connectTimeout = 30000;
+
+        protected long socketTimeout = 30000;
 
         public FastReindexRemoteInfo() {
 
@@ -78,15 +90,25 @@ public class FastReindexRequest extends ActionRequest {
          */
         public FastReindexRemoteInfo(StreamInput in) throws IOException {
             ip = in.readString();
-            clusterName = in.readString();
-            port = in.readString();
+            clusterName = in.readOptionalString();
+            port = in.readInt();
+            headers =  in.readMap();
+            username = in.readOptionalString();
+            password = in.readOptionalString();
+            connectTimeout = in.readLong();
+            socketTimeout = in.readLong();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(ip);
-            out.writeString(clusterName);
-            out.writeString(port);
+            out.writeOptionalString(clusterName);
+            out.writeInt(port);
+            out.writeMap(headers);
+            out.writeOptionalString(username);
+            out.writeOptionalString(password);
+            out.writeLong(connectTimeout);
+            out.writeLong(socketTimeout);
         }
     }
 

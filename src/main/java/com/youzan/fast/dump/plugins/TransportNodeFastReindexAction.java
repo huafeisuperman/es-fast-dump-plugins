@@ -9,6 +9,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -38,17 +39,21 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
 
     private final ClusterService clusterService;
 
+    private Client client;
+
 
     @Inject
     public TransportNodeFastReindexAction(Settings settings,
                                           ThreadPool threadPool,
                                           ClusterService clusterService,
                                           ActionFilters actionFilters,
+                                          Client client,
                                           IndexNameExpressionResolver indexNameExpressionResolver,
                                           TransportService transportService) {
         super(settings, ACTION_NAME, threadPool, actionFilters,
                 indexNameExpressionResolver, transportService.getTaskManager());
         this.transportService = transportService;
+        this.client =client;
         transportService.registerRequestHandler(actionName, FastReindexShardRequest::new, ThreadPool.Names.GENERIC, new ShardOperationTransportHandler());
         this.clusterService = clusterService;
     }
@@ -206,7 +211,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             try {
                 FastReindexShardResponse response = new FastReindexShardResponse();
                 response.setNodeId(request.getNodeId());
-                resolve = DataResolveFactory.getDataResolve(request);
+                resolve = DataResolveFactory.getDataResolve(request, client);
                 FileReader fileReader = new LuceneFileReader(request.getFile(), task).
                         setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).

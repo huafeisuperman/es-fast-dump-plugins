@@ -1,6 +1,7 @@
 package com.youzan.fast.dump.resolver;
 
 import com.youzan.fast.dump.plugins.FastReindexShardRequest;
+import org.elasticsearch.client.Client;
 
 /**
  * @author :  43333
@@ -12,11 +13,15 @@ import com.youzan.fast.dump.plugins.FastReindexShardRequest;
  */
 public class DataResolveFactory {
 
-    public static DataResolve getDataResolve(FastReindexShardRequest request) throws Exception {
+    public static DataResolve getDataResolve(FastReindexShardRequest request, Client client) throws Exception {
         switch (request.getFastReindexRequest().getTargetResolver().toUpperCase()) {
             case "ES":
-                return new ESDataResolve(request.getFastReindexRequest().getRemoteInfo().getIp(), request.getFastReindexRequest().getRemoteInfo().getPort(),
-                        request.getFastReindexRequest().getRemoteInfo().getClusterName(), request.getFastReindexRequest().getMode(), request.getFastReindexRequest().getPerNodeSpeedLimit());
+                if (null == request.getFastReindexRequest().getRemoteInfo())
+                    return new ESDataResolve(client,
+                            request.getFastReindexRequest().getMode(), request.getFastReindexRequest().getPerNodeSpeedLimit());
+                else
+                    return new ESRestDataResolver(request.getFastReindexRequest().getRemoteInfo(),
+                            request.getFastReindexRequest().getMode(), request.getFastReindexRequest().getPerNodeSpeedLimit());
             default:
                 throw new Exception("not find dataResolve");
         }
