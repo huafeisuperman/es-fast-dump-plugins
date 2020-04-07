@@ -76,7 +76,9 @@ public class FastReindexRestHandler extends BaseRestHandler {
         AccessController.doPrivileged(
                 (PrivilegedAction<Void>) () -> {
                     fastReindexRequest.setQuery(source.getString("query"));
-                    fastReindexRequest.checkQuery();
+                    if (null != fastReindexRequest.getQuery()) {
+                        fastReindexRequest.checkQuery();
+                    }
                     return null;
                 });
 
