@@ -11,6 +11,7 @@ import com.youzan.fast.dump.util.QueryParserHelper;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Bits;
@@ -18,10 +19,7 @@ import org.apache.lucene.util.FixedBitSet;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -36,8 +34,29 @@ import java.util.concurrent.Future;
  */
 public class LuceneFileReader extends AbstractFileReader {
 
+    private Map<String, String> fieldInfo = new HashMap<>();
+
+    private String query;
+
+    private Query luceneQuery;
+
     public LuceneFileReader(List<String> files, FastReindexTask task) {
         super(files, task);
+    }
+
+    public LuceneFileReader setFieldInfo(Map<String, String> fieldInfo) {
+        this.fieldInfo = fieldInfo;
+        return this;
+    }
+
+    public LuceneFileReader setQuery(String query) {
+        this.query = query;
+        if (null != query) {
+            luceneQuery = QueryParserHelper.parser((JSONObject) JSON.parse(query, Feature.config(JSON.DEFAULT_PARSER_FEATURE,
+                    Feature.UseBigDecimal, false)), fieldInfo);
+        }
+        return this;
+
     }
 
     @Override
@@ -51,9 +70,9 @@ public class LuceneFileReader extends AbstractFileReader {
             reader = (StandardDirectoryReader) DirectoryReader.open(FSDirectory.open(Paths.get(indexTypeFile[2])));
             FixedBitSet bitSet = null;
             boolean hasDoc = true;
-            if (null != query) {
+            if (null != luceneQuery) {
                 IndexSearcher searcher = new IndexSearcher(reader);
-                TopDocs topDocs = searcher.search(QueryParserHelper.parser(JSON.parseObject(query)),
+                TopDocs topDocs = searcher.search(luceneQuery,
                         Integer.MAX_VALUE);
                 if (topDocs.totalHits > 0) {
                     bitSet = new FixedBitSet(reader.maxDoc());

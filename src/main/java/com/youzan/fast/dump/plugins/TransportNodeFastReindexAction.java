@@ -7,10 +7,12 @@ import com.youzan.fast.dump.resolver.DataResolve;
 import com.youzan.fast.dump.resolver.DataResolveFactory;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -23,6 +25,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -209,12 +214,24 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
         public void onResponse(Releasable releasable) {
             DataResolve resolve = null;
             try {
+                Map<String, String> fieldType = new HashMap<>();
+                if (null != request.getFastReindexRequest().getQuery()) {
+                    Iterator<MappingMetaData> iterator = client.admin().indices().getMappings(new GetMappingsRequest().indices(request.getFastReindexRequest().getSourceIndex())).
+                            get().getMappings().get(request.getFastReindexRequest().getSourceIndex()).valuesIt();
+                    while (iterator.hasNext()) {
+                        MappingMetaData mappingMetaData = iterator.next();
+                        for (Map.Entry<String, Object> entry : ((Map<String, Object>) mappingMetaData.getSourceAsMap().get("properties")).entrySet()) {
+                            fieldType.put(entry.getKey(), ((Map) entry.getValue()).get("type").toString());
+                        }
+                    }
+                }
                 FastReindexShardResponse response = new FastReindexShardResponse();
                 response.setNodeId(request.getNodeId());
                 resolve = DataResolveFactory.getDataResolve(request, client);
                 FileReader fileReader = new LuceneFileReader(request.getFile(), task).
-                        setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
+                        setFieldInfo(fieldType).
                         setQuery(request.getFastReindexRequest().getQuery()).
+                        setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
                         setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
                         initRule(request.getFastReindexRequest().getTargetIndexType(),
