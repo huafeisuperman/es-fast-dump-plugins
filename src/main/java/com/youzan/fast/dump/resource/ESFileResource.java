@@ -118,9 +118,9 @@ public class ESFileResource implements FileResource {
                 }
                 break;
             case ALL_TO_ALL:
-            case CUSTOM:
                 indexAndType.keySet().forEach(x -> indexMapping.put(x, x));
                 break;
+            case CUSTOM:
             case ALL_TO_ONE:
                 String trueIndex = getTrueIndex(esClient, targetIndex);
                 indexAndType.keySet().forEach(x -> indexMapping.put(x, trueIndex));

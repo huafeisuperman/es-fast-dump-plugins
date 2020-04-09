@@ -114,36 +114,6 @@ public abstract class AbstractFileReader implements BaseLogger, FileReader {
                 }
             });
         }
-
-        /*new Thread(()->{
-            try {
-                while (true) {
-                    boolean taskFinish = true;
-                    if (fileReadList.size() == task.getTotalFile()) {
-                        for (FileReadStatus fileReadStatus : fileReadList) {
-                            if (fileReadStatus.getStatus().equals(StatusEnum.PROCESSING.getStatus())) {
-                                taskFinish = false;
-                            }
-                        }
-                    } else {
-                        taskFinish = false;
-                    }
-                    LOGGER.info("=========" + taskFinish + "---" + task.getTotalFile());
-                    if (!taskFinish) {
-                        LOGGER.info("=========" + task.isCancelled());
-                        if (task.isCancelled()) {
-                            service.shutdownNow();
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                    Thread.sleep(5000L);
-                }
-            } catch (InterruptedException e) {
-                LOGGER.error("check task cancel error. ", e);
-            }
-        }).start();*/
         service.shutdown();
         service.awaitTermination(Integer.MAX_VALUE, TimeUnit.DAYS);
         dataResolve.afterFinish();

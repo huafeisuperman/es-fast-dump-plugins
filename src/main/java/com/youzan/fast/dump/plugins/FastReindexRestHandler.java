@@ -91,6 +91,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
             ruleInfo.setRuleName(PACKAGE_NAME + rules.getString(RULE_NAME));
             ruleInfo.setField(rules.getString(FIELD));
             ruleInfo.setRules(rules.getString(RULE_VALUE));
+            fastReindexRequest.setRuleInfo(ruleInfo);
         }
 
 
