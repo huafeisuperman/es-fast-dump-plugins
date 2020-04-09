@@ -7,9 +7,12 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,7 +43,13 @@ public class ESRestClient extends AbstractEsClient<RestClient> {
             clientHeaders[i] = new BasicHeader(header.getKey(), header.getValue().toString());
             i++;
         }
-        return RestClient.builder(new HttpHost(remoteInfo.getIp(), remoteInfo.getPort(), null))
+        String[] hosts = remoteInfo.getIp().split(",");
+        List<HttpHost> httpHosts = new ArrayList<>();
+        for (String host : hosts) {
+            httpHosts.add(new HttpHost(host, remoteInfo.getPort(), null));
+        }
+
+        return RestClient.builder(httpHosts.toArray(new HttpHost[]{}))
                 .setDefaultHeaders(clientHeaders)
                 .setRequestConfigCallback(c -> {
                     c.setConnectTimeout(Math.toIntExact(remoteInfo.getConnectTimeout()));
@@ -57,8 +66,8 @@ public class ESRestClient extends AbstractEsClient<RestClient> {
                         c.setDefaultCredentialsProvider(credentialsProvider);
                     }
                     // Limit ourselves to one reactor thread because for now the search process is single threaded.
-                    //c.setDefaultIOReactorConfig(IOReactorConfig.custom().setIoThreadCount(1).build());
+                    //c.setDefaultIOReactorConfig(IOReactorConfig.custom().setIoThreadCount(10).build());
                     return c;
-                }).build();
+                }).setMaxRetryTimeoutMillis((int) remoteInfo.getSocketTimeout()).build();
     }
 }

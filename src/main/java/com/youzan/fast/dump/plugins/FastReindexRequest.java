@@ -119,9 +119,9 @@ public class FastReindexRequest extends ActionRequest {
 
         protected String password;
 
-        protected long connectTimeout = 30000;
+        protected long connectTimeout = 1000;
 
-        protected long socketTimeout = 30000;
+        protected long socketTimeout = 2 * 60000;
 
         public FastReindexRemoteInfo() {
 
