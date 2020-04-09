@@ -52,6 +52,7 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setTargetIndex(in.readString());
         fastReindexRequest.setTargetResolver(in.readString());
         fastReindexRequest.setTargetIndexType(in.readString());
+        fastReindexRequest.setTargetType(in.readOptionalString());
         fastReindexRequest.setBatchSize(in.readInt());
         fastReindexRequest.setOneFileThreadNum(in.readInt());
         fastReindexRequest.setPerNodeSpeedLimit(in.readInt());
@@ -71,6 +72,7 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeString(fastReindexRequest.getTargetIndex());
         out.writeString(fastReindexRequest.getTargetResolver());
         out.writeString(fastReindexRequest.getTargetIndexType());
+        out.writeOptionalString(fastReindexRequest.getTargetType());
         out.writeInt(fastReindexRequest.getBatchSize());
         out.writeInt(fastReindexRequest.getOneFileThreadNum());
         out.writeInt(fastReindexRequest.getPerNodeSpeedLimit());

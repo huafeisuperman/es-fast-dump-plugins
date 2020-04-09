@@ -234,6 +234,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                         setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
                         setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
                         setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
+                        setTargetType(request.getFastReindexRequest().getTargetType()).
                         initRule(request.getFastReindexRequest().getTargetIndexType(),
                                 request.getFastReindexRequest().getRuleInfo());
 

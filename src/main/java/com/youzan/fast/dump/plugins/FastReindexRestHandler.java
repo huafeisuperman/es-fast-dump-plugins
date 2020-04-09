@@ -39,6 +39,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String TARGET_IP = "target_ip";
     private static final String TARGET_PORT = "target_port";
     private static final String TARGET_NAME = "target_name";
+    private static final String TARGET_TYPE = "target_type";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String TARGET_RESOLVER = "target_resolver";
@@ -85,6 +86,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
         fastReindexRequest.setTargetIndex(target.getString(TARGET_INDEX));
         fastReindexRequest.setTargetIndexType(target.getOrDefault(TARGET_INDEX_TYPE, IndexTypeEnum.ALL_TO_ALL.getIndexType()).toString());
         fastReindexRequest.setTargetResolver(target.getString(TARGET_RESOLVER));
+        fastReindexRequest.setTargetType(target.getString(TARGET_TYPE));
 
         if (null != rules) {
             FastReindexRequest.RuleInfo ruleInfo = new FastReindexRequest.RuleInfo();

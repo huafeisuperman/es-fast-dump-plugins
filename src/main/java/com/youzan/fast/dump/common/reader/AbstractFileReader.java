@@ -40,6 +40,8 @@ public abstract class AbstractFileReader implements BaseLogger, FileReader {
 
     protected List<Rule> ruleList = new ArrayList<>();
 
+    protected String targetType;
+
     private FastReindexTask task;
 
     public AbstractFileReader(List<String> files, FastReindexTask task) {
@@ -69,6 +71,11 @@ public abstract class AbstractFileReader implements BaseLogger, FileReader {
         if (mode == IndexModeEnum.UPDATE) {
             isUpdateMode = true;
         }
+        return this;
+    }
+
+    public AbstractFileReader setTargetType(String targetType) {
+        this.targetType = targetType;
         return this;
     }
 

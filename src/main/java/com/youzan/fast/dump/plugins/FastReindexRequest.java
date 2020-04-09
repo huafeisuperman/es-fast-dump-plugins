@@ -36,6 +36,8 @@ public class FastReindexRequest extends ActionRequest {
 
     protected String targetIndex;
 
+    protected String targetType;
+
     protected String query;
 
     protected FastReindexRemoteInfo remoteInfo;

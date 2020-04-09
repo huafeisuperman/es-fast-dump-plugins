@@ -222,7 +222,12 @@ public class LuceneFileReader extends AbstractFileReader {
                     record.put("version", numericDocValues.get(docId));
                 }
 
-                record.put("type", typeAndId[0]);
+                if (null != targetType) {
+                    record.put("type", targetType);
+                } else {
+                    record.put("type", typeAndId[0]);
+                }
+
                 record.put("source", source);
                 record.put("_id", typeAndId[1]);
                 record.put("sourceIndex", sourceIndex);
