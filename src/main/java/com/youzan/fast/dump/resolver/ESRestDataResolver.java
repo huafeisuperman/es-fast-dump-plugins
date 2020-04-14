@@ -61,10 +61,10 @@ public class ESRestDataResolver extends BaseDataResolve {
                                 childJson.put("_index", index);
                                 childJson.put("_route", route);
                                 //按照模式来区分不同的索引类型
-                                if (mode == IndexModeEnum.CREATE) {
+                                if (mode.equals(IndexModeEnum.CREATE)) {
                                     jsonObject.put("create", childJson);
 
-                                } else if (mode == IndexModeEnum.INSERT) {
+                                } else if (mode.equals(IndexModeEnum.INSERT)) {
                                     jsonObject.put("index", childJson);
 
                                 } else {
