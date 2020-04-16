@@ -33,14 +33,22 @@ public class HiveDataResolve extends BaseDataResolve {
 
     ThreadLocal<OrcBatchROW> writerThreadLocal = new ThreadLocal<>();
 
+    public static final String ID_FIELD = "id";
+
+    public static final String VERSION_FIELD = "version";
+
+    public static final String INDEX_FIELD = "index";
+
+    public static final String ALL_FIELD = "all_field";
+
     public HiveDataResolve(FastReindexRequest.FastReindexRemoteInfo remoteInfo, int speedLimit) throws Exception {
         super(speedLimit);
         conf = new HdfsConfClient(remoteInfo).getClient();
         schema = TypeDescription.createStruct();
-        schema.addField("id", TypeDescription.createString())
-                .addField("version", TypeDescription.createString())
-                .addField("index", TypeDescription.createString())
-                .addField("all_field", TypeDescription.createString());
+        schema.addField(ID_FIELD, TypeDescription.createString())
+                .addField(VERSION_FIELD, TypeDescription.createString())
+                .addField(INDEX_FIELD, TypeDescription.createString())
+                .addField(ALL_FIELD, TypeDescription.createString());
     }
 
 
@@ -77,7 +85,7 @@ public class HiveDataResolve extends BaseDataResolve {
                 });
     }
 
-    private synchronized OrcBatchROW initialWriter(String path) throws IOException {
+    private synchronized OrcBatchROW initialWriter(String path) throws Exception {
         if (null == writerThreadLocal.get()) {
             OrcBatchROW orcBatchROW = new OrcBatchROW();
             orcBatchROW.setWriter(OrcFile.createWriter(new Path(path + "/" + UUID.randomUUID()),
