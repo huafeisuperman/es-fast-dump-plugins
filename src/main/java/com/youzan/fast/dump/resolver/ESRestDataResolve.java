@@ -10,7 +10,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.SpecialPermission;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.index.VersionType;
@@ -27,13 +26,13 @@ import java.util.Set;
  * @author: huafei
  * @date: 2020.04.04
  */
-public class ESRestDataResolver extends BaseDataResolve {
+public class ESRestDataResolve extends BaseDataResolve {
 
     private RestClient esClient;
 
     private IndexModeEnum mode;
 
-    public ESRestDataResolver(FastReindexRequest.FastReindexRemoteInfo remoteInfo, String mode, int speedLimit) throws Exception {
+    public ESRestDataResolve(FastReindexRequest.FastReindexRemoteInfo remoteInfo, String mode, int speedLimit) throws Exception {
         super(speedLimit);
         esClient = new ESRestClient(remoteInfo).getClient();
         this.mode = IndexModeEnum.findModeEnum(mode);
@@ -57,7 +56,9 @@ public class ESRestDataResolver extends BaseDataResolve {
                                 JSONObject jsonObject = new JSONObject();
                                 JSONObject childJson = new JSONObject();
                                 childJson.put("_id", id);
-                                childJson.put("_type", sourceType);
+                                if (!sourceType.equals("_doc")) {
+                                    childJson.put("_type", sourceType);
+                                }
                                 childJson.put("_index", index);
                                 childJson.put("_route", route);
                                 //按照模式来区分不同的索引类型

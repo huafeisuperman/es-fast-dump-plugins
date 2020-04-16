@@ -1,5 +1,6 @@
 package com.youzan.fast.dump.resolver;
 
+import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.plugins.FastReindexShardRequest;
 import org.elasticsearch.client.Client;
 
@@ -14,14 +15,17 @@ import org.elasticsearch.client.Client;
 public class DataResolveFactory {
 
     public static DataResolve getDataResolve(FastReindexShardRequest request, Client client) throws Exception {
-        switch (request.getFastReindexRequest().getTargetResolver().toUpperCase()) {
-            case "ES":
+        switch (ResolveTypeEnum.findResolveTypeEnum(request.getFastReindexRequest().getTargetResolver().toUpperCase())) {
+            case ES:
                 if (null == request.getFastReindexRequest().getRemoteInfo())
                     return new ESDataResolve(client,
                             request.getFastReindexRequest().getMode(), request.getFastReindexRequest().getPerNodeSpeedLimit());
                 else
-                    return new ESRestDataResolver(request.getFastReindexRequest().getRemoteInfo(),
+                    return new ESRestDataResolve(request.getFastReindexRequest().getRemoteInfo(),
                             request.getFastReindexRequest().getMode(), request.getFastReindexRequest().getPerNodeSpeedLimit());
+            case HIVE:
+                return new HiveDataResolve(request.getFastReindexRequest().getRemoteInfo(),
+                        request.getFastReindexRequest().getPerNodeSpeedLimit());
             default:
                 throw new Exception("not find dataResolve");
         }

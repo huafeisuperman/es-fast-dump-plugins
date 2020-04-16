@@ -1,10 +1,15 @@
 package com.youzan.fast.dump.plugins;
 
+import com.youzan.fast.dump.client.HdfsConfClient;
 import com.youzan.fast.dump.common.IndexModeEnum;
+import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.common.reader.FileReader;
 import com.youzan.fast.dump.common.reader.LuceneFileReader;
 import com.youzan.fast.dump.resolver.DataResolve;
 import com.youzan.fast.dump.resolver.DataResolveFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
@@ -25,6 +30,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -237,7 +244,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                         setTargetType(request.getFastReindexRequest().getTargetType()).
                         initRule(request.getFastReindexRequest().getTargetIndexType(),
                                 request.getFastReindexRequest().getRuleInfo());
-
+                initialResource();
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
                 ResponseListener rl = new TransportNodeFastReindexAction.AsyncShardAction.ResponseListener();
@@ -254,6 +261,26 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                     logger.error("close client error", e);
                 }
             }
+        }
+
+        private void initialResource() {
+            AccessController.doPrivileged(
+                    (PrivilegedAction<Configuration>) () -> {
+                        try {
+                            if (request.getFastReindexRequest().getTargetResolver().toUpperCase().equals(ResolveTypeEnum.HIVE.getResolveType())) {
+                                Configuration conf = new HdfsConfClient(request.getFastReindexRequest().getRemoteInfo()).getClient();
+                                logger.info(org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+                                FileSystem fs = FileSystem.get(conf);
+                                fs.delete(new Path(request.getFastReindexRequest().getTargetIndex()));
+                                fs.mkdirs(new Path(request.getFastReindexRequest().getTargetIndex()));
+                                fs.close();
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                        return null;
+                    });
+
         }
 
         @Override
