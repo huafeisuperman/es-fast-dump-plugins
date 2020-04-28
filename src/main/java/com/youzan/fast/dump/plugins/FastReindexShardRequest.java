@@ -10,7 +10,9 @@ import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description:
@@ -27,23 +29,8 @@ public class FastReindexShardRequest extends ActionRequest {
 
     private FastReindexRequest fastReindexRequest;
 
-    public FastReindexShardRequest() {
-        super();
-    }
-
-    public Task createTask(long id, String type, String action, TaskId parentTaskId) {
-        return fastReindexRequest.createTask(id, type, action, parentTaskId);
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
-    }
-
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public FastReindexShardRequest(StreamInput in) throws IOException {
+        super(in);
         fastReindexRequest = new FastReindexRequest();
         nodeId = in.readString();
         file = Arrays.asList(in.readStringArray());
@@ -60,6 +47,20 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setQuery(in.readOptionalString());
         fastReindexRequest.setRemoteInfo(in.readOptionalWriteable(FastReindexRequest.FastReindexRemoteInfo::new));
         fastReindexRequest.setRuleInfo(in.readOptionalWriteable(FastReindexRequest.RuleInfo::new));
+    }
+
+    public FastReindexShardRequest() {
+
+    }
+
+    @Override
+    public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+        return fastReindexRequest.createTask(id, type, action, parentTaskId, headers);
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        return null;
     }
 
     @Override

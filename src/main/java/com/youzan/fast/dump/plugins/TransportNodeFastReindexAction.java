@@ -21,6 +21,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
@@ -55,26 +56,17 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
 
 
     @Inject
-    public TransportNodeFastReindexAction(Settings settings,
-                                          ThreadPool threadPool,
-                                          ClusterService clusterService,
+    public TransportNodeFastReindexAction(ClusterService clusterService,
                                           ActionFilters actionFilters,
                                           Client client,
-                                          IndexNameExpressionResolver indexNameExpressionResolver,
                                           TransportService transportService) {
-        super(settings, ACTION_NAME, threadPool, actionFilters,
-                indexNameExpressionResolver, transportService.getTaskManager());
+        super(ACTION_NAME, actionFilters, transportService.getTaskManager());
         this.transportService = transportService;
         this.client = client;
-        transportService.registerRequestHandler(actionName, FastReindexShardRequest::new, ThreadPool.Names.GENERIC, new ShardOperationTransportHandler());
+        transportService.registerRequestHandler(actionName, ThreadPool.Names.GENERIC, FastReindexShardRequest::new, new ShardOperationTransportHandler());
         this.clusterService = clusterService;
     }
 
-
-    @Override
-    protected final void doExecute(FastReindexShardRequest request, ActionListener<FastReindexShardResponse> listener) {
-        throw new UnsupportedOperationException("the task parameter is required for this operation");
-    }
 
     @Override
     protected void doExecute(Task task, FastReindexShardRequest request, ActionListener<FastReindexShardResponse> listener) {
@@ -113,8 +105,8 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             transportService.sendRequest(node, action, requestToPerform, new TransportResponseHandler<FastReindexShardResponse>() {
 
                 @Override
-                public FastReindexShardResponse newInstance() {
-                    return newResponseInstance();
+                public FastReindexShardResponse read(StreamInput in) throws IOException {
+                    return new FastReindexShardResponse();
                 }
 
                 @Override
@@ -194,10 +186,6 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             new AsyncShardAction(request, channel, (FastReindexTask) task).run();
         }
 
-        @Override
-        public void messageReceived(FastReindexShardRequest request, TransportChannel channel) throws Exception {
-            throw new UnsupportedOperationException("the task parameter is required for this operation");
-        }
     }
 
     private final class AsyncShardAction extends AbstractRunnable implements ActionListener<Releasable> {
@@ -269,7 +257,6 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                         try {
                             if (request.getFastReindexRequest().getTargetResolver().toUpperCase().equals(ResolveTypeEnum.HIVE.getResolveType())) {
                                 Configuration conf = new HdfsConfClient(request.getFastReindexRequest().getRemoteInfo()).getClient();
-                                logger.info(org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
                                 FileSystem fs = FileSystem.get(conf);
                                 fs.delete(new Path(request.getFastReindexRequest().getTargetIndex()));
                                 fs.mkdirs(new Path(request.getFastReindexRequest().getTargetIndex()));

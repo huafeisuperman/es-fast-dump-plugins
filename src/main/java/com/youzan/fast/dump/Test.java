@@ -5,6 +5,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.parser.Feature;
 import com.youzan.fast.dump.util.QueryParserHelper;
+import groovy.lang.Binding;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.Script;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -62,8 +65,29 @@ public class Test {
         //        BooleanClause.Occur.MUST_NOT)).build();
         TopDocs scoreDocs = searcher.search(b, Integer.MAX_VALUE);
         System.out.println(scoreDocs.totalHits);
-        for (ScoreDoc scoreDoc : scoreDocs.scoreDocs) {
+
+        /*for (ScoreDoc scoreDoc : scoreDocs.scoreDocs) {
             System.out.println(scoreDoc.doc);
+        }*/
+        long startTime = System.currentTimeMillis();
+        for (int i=0;i<1000000000;i++) {
+            JSONObject pp = new JSONObject();
+            pp.put("a","sdfsd");
+            Object c = pp.get("a");
+
         }
+        System.out.println(System.currentTimeMillis()-startTime);
+
+       /* GroovyClassLoader classLoader = new GroovyClassLoader();
+        Class groovyClass = classLoader.parseClass("str = name+age;return str");
+        for (int i=0;i<1000;i++) {
+            Binding binding = new Binding();
+            binding.setVariable("name", "iamzhongyong");
+            binding.setVariable("age", i);
+            //InvokerHelper(script, function, objects);
+            Script script = (Script) groovyClass.newInstance();
+            script.setBinding(binding);
+            System.out.println(script.run());
+        }*/
     }
 }

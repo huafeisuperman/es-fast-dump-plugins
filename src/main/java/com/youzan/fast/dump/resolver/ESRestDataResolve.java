@@ -10,6 +10,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.index.VersionType;
@@ -82,13 +83,15 @@ public class ESRestDataResolve extends BaseDataResolve {
                             rateLimiter.acquire(records.size());
                             HttpEntity entity = new NStringEntity(recordBuilder.toString(),
                                     ContentType.APPLICATION_JSON);
-                            Response response = esClient.performRequest("post", "/_bulk", new HashMap<>(), entity);
+                            Request request = new Request("post", "/_bulk");
+                            request.setEntity(entity);
+                            Response response = esClient.performRequest(request);
                             String content = EntityUtils.toString(response.getEntity());
                             int retryTimes = 0;
                             while (hasFailures(content)) {
                                 if (retryTimes < 2) {
                                     Thread.sleep(1000L);
-                                    response = esClient.performRequest("post", "/_bulk", new HashMap<>(), entity);
+                                    response = esClient.performRequest(request);
                                     content = EntityUtils.toString(response.getEntity());
                                     retryTimes++;
                                 } else {

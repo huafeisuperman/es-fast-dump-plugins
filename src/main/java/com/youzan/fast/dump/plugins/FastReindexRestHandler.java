@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.youzan.fast.dump.common.IndexModeEnum;
 import com.youzan.fast.dump.common.IndexTypeEnum;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
 import org.elasticsearch.rest.action.RestBuilderListener;
@@ -23,8 +22,7 @@ import java.security.PrivilegedAction;
  */
 public class FastReindexRestHandler extends BaseRestHandler {
 
-    public FastReindexRestHandler(Settings settings, RestController restController) {
-        super(settings);
+    public FastReindexRestHandler(RestController restController) {
         restController.registerHandler(RestRequest.Method.POST, "/fast/index", this);
     }
 
@@ -57,6 +55,11 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String HEADERS = "headers";
     private static final String WAIT_FOR_COMPLETION = "wait_for_completion";
 
+
+    @Override
+    public String getName() {
+        return "fast_index";
+    }
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
@@ -130,6 +133,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
 
     }
+
 
     private RestChannelConsumer sendTask(String localNodeId, Task task) {
         return channel -> {

@@ -16,6 +16,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.FixedBitSet;
+import org.elasticsearch.index.mapper.Uid;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -64,17 +65,17 @@ public class LuceneFileReader extends AbstractFileReader {
 
         String[] indexTypeFile = file.split(":");
         FileReadStatus fileReadStatus = new FileReadStatus(indexTypeFile[2], 0, 0);
-        StandardDirectoryReader reader = null;
+        SoftDeletesDirectoryReaderWrapper reader = null;
         try {
             fileReadList.add(fileReadStatus);
-            reader = (StandardDirectoryReader) DirectoryReader.open(FSDirectory.open(Paths.get(indexTypeFile[2])));
+            reader = new SoftDeletesDirectoryReaderWrapper(DirectoryReader.open(FSDirectory.open(Paths.get(indexTypeFile[2]))), "__soft_deletes");
             FixedBitSet bitSet = null;
             boolean hasDoc = true;
             if (null != luceneQuery) {
                 IndexSearcher searcher = new IndexSearcher(reader);
                 TopDocs topDocs = searcher.search(luceneQuery,
                         Integer.MAX_VALUE);
-                if (topDocs.totalHits > 0) {
+                if (topDocs.totalHits.value > 0) {
                     bitSet = new FixedBitSet(reader.maxDoc());
                 } else {
                     hasDoc = false;
@@ -188,9 +189,8 @@ public class LuceneFileReader extends AbstractFileReader {
 
                 //6.x和5.x底层存储结构不一样，兼容判断
                 if (null == document.getField("_uid")) {
-                    throw new Exception("can not find uid");
-                    //typeAndId[0] = type;
-                    //typeAndId[1] = Uid.decodeId(document.getField("_id").binaryValue().bytes);
+                    typeAndId[0] = type;
+                    typeAndId[1] = Uid.decodeId(document.getField("_id").binaryValue().bytes);
                 } else {
                     //同时兼容多type的情况
                     String uid = document.getField("_uid").stringValue();
@@ -217,9 +217,8 @@ public class LuceneFileReader extends AbstractFileReader {
                 //如果mode是update的话加上version
                 if (isUpdateMode) {
                     NumericDocValues numericDocValues = reader.getNumericDocValues("_version");
-                    //numericDocValues.advanceExact(docId);
-                    //record.put("version", numericDocValues.longValue());
-                    record.put("version", numericDocValues.get(docId));
+                    numericDocValues.advanceExact(docId);
+                    record.put("version", numericDocValues.longValue());
                 }
 
                 if (null != targetType) {

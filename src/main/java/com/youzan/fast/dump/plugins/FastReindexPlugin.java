@@ -42,7 +42,7 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
                                              IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
                                              IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
         return Arrays.asList(
-                new FastReindexRestHandler(settings, restController));
+                new FastReindexRestHandler(restController));
     }
 
     @Override

@@ -68,6 +68,6 @@ public class ESRestClient extends AbstractEsClient<RestClient> {
                     // Limit ourselves to one reactor thread because for now the search process is single threaded.
                     //c.setDefaultIOReactorConfig(IOReactorConfig.custom().setIoThreadCount(10).build());
                     return c;
-                }).setMaxRetryTimeoutMillis((int) remoteInfo.getSocketTimeout()).build();
+                }).build();
     }
 }

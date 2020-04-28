@@ -7,11 +7,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.ArrayList;
@@ -29,16 +26,12 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
     private Client client;
 
     @Inject
-    public TransportFastReindexAction(Settings settings,
-                                      ThreadPool threadPool,
-                                      ActionFilters actionFilters,
+    public TransportFastReindexAction(ActionFilters actionFilters,
                                       Client client,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       TransportService transportService,
                                       TransportNodeFastReindexAction transportNodeFastReindexAction) {
 
-        super(settings, FastReindexAction.NAME, threadPool, transportService, actionFilters, indexNameExpressionResolver,
-                FastReindexRequest::new);
+        super(FastReindexAction.NAME, transportService, actionFilters, FastReindexRequest::new);
         this.client = client;
         this.transportNodeFastReindexAction = transportNodeFastReindexAction;
     }
@@ -95,11 +88,6 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
             listener.onFailure(e);
         }
 
-    }
-
-    @Override
-    protected void doExecute(FastReindexRequest request, ActionListener<FastReindexResponse> listener) {
-        throw new UnsupportedOperationException("task required");
     }
 
 }

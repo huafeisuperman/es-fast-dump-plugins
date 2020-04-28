@@ -4,12 +4,10 @@ import com.youzan.fast.dump.common.StatusEnum;
 import com.youzan.fast.dump.common.reader.FileReadStatus;
 import lombok.Data;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,8 +26,20 @@ public class FastReindexShardResponse extends ActionResponse implements ToXConte
 
     private String nodeId;
 
-    public FastReindexShardResponse() {
+    public FastReindexShardResponse(StreamInput in) throws IOException {
+        super(in);
+        nodeId = in.readString();
+        int length = in.readVInt();
+        fileReadStatusList = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            fileReadStatusList.add(in.readOptionalWriteable(FileReadStatus::new));
+        }
     }
+
+    public FastReindexShardResponse() {
+
+    }
+
 
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
         builder.startObject();
@@ -49,20 +59,9 @@ public class FastReindexShardResponse extends ActionResponse implements ToXConte
         return true;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        nodeId = in.readString();
-        int length = in.readVInt();
-        fileReadStatusList = new ArrayList<>(length);
-        for (int i = 0; i < length; i++) {
-            fileReadStatusList.add(in.readOptionalWriteable(FileReadStatus::new));
-        }
-    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeString(nodeId);
         out.writeVInt(fileReadStatusList.size());
         for (FileReadStatus fileReadStatus : fileReadStatusList) {

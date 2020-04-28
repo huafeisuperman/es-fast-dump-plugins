@@ -28,6 +28,11 @@ public class FastReindexRequest extends ActionRequest {
 
     }
 
+    public FastReindexRequest(StreamInput input) throws IOException{
+        super(input);
+
+    }
+
     protected String sourceIndex;
 
     protected String mode;
@@ -66,7 +71,7 @@ public class FastReindexRequest extends ActionRequest {
     }
 
     @Override
-    public Task createTask(long id, String type, String action, TaskId parentTaskId) {
+    public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
         return new FastReindexTask(id, type, action, getDescription(), parentTaskId);
     }
 
