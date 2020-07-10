@@ -38,6 +38,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.youzan.fast.dump.plugins.FastReindexPlugin.FAST_REINDEX_THREAD_POOL_NAME;
+
 /**
  * Description:
  *
@@ -63,7 +65,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
         super(ACTION_NAME, actionFilters, transportService.getTaskManager());
         this.transportService = transportService;
         this.client = client;
-        transportService.registerRequestHandler(actionName, ThreadPool.Names.GENERIC, FastReindexShardRequest::new, new ShardOperationTransportHandler());
+        transportService.registerRequestHandler(actionName, FAST_REINDEX_THREAD_POOL_NAME, FastReindexShardRequest::new, new ShardOperationTransportHandler());
         this.clusterService = clusterService;
     }
 
@@ -154,9 +156,9 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
 
         void finishAsFailed(Exception failure) {
             if (finished.compareAndSet(false, true)) {
-                logger.error(
+                /*logger.error(
                         (org.apache.logging.log4j.util.Supplier<?>)
-                                () -> new ParameterizedMessage("operation failed. action [{}], request [{}]", actionName, request), failure);
+                                () -> new ParameterizedMessage("operation failed. action [{}], request [{}]", actionName, request), failure);*/
                 listener.onFailure(failure);
             } else {
                 assert false : "finishAsFailed called but operation is already finished";

@@ -5,16 +5,16 @@ import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
+import org.elasticsearch.common.settings.*;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.tasks.Task;
+import org.elasticsearch.threadpool.ExecutorBuilder;
+import org.elasticsearch.threadpool.FixedExecutorBuilder;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -30,6 +30,20 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
 
 
     public static final String NAME = "fast_reindex";
+
+    public static final String FAST_REINDEX_SIZE_KEY =  "thread_pool.fast_reindex.size";
+
+    public static final String FAST_REINDEX_QUEUE_SIZE_KEY = "thread_pool.fast_reindex.queue_size";
+
+    public static final String FAST_REINDEX_THREAD_POOL_NAME = NAME;
+
+    public static final int FAST_REINDEX_THREAD_POOL_SIZE= 1;
+
+    public static final int FAST_REINDEX_THREAD_POOL_QUEUE_SIZE = 2;
+
+    public static final Setting<Integer> SIZE = Setting.intSetting(FAST_REINDEX_SIZE_KEY, FAST_REINDEX_THREAD_POOL_SIZE, Setting.Property.NodeScope);
+
+    public static final Setting<Integer> QUEUE_SIZE = Setting.intSetting(FAST_REINDEX_QUEUE_SIZE_KEY, FAST_REINDEX_THREAD_POOL_QUEUE_SIZE, Setting.Property.NodeScope);
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
@@ -48,5 +62,19 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
     @Override
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         return Collections.singletonList(new NamedWriteableRegistry.Entry(Task.Status.class, FastReindexTask.Status.NAME, FastReindexTask.Status::new));
+    }
+
+    @Override
+    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
+        return Collections.singletonList(new FixedExecutorBuilder(settings, FAST_REINDEX_THREAD_POOL_NAME,
+                settings.getAsInt(FAST_REINDEX_SIZE_KEY,  1), settings.getAsInt(FAST_REINDEX_QUEUE_SIZE_KEY, 3), "fast_reindex_thread_pool"));
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        List<Setting<?>> settingList = new ArrayList<>();
+        settingList.add(SIZE);
+        settingList.add(QUEUE_SIZE);
+        return settingList;
     }
 }
