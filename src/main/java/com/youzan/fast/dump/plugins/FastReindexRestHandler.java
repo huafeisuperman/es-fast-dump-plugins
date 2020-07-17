@@ -54,6 +54,11 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final int DEFAULT_ONE_FILE_THREAD_NUM = 1;
     private static final String HEADERS = "headers";
     private static final String WAIT_FOR_COMPLETION = "wait_for_completion";
+    private static final String SOURCE_RESOLVER = "source_resolver";
+    private static final String NEED_FIELDS = "need_fields";
+    private static final String NEST_FIELDS = "nest_fields";
+    private static final String PRIMARY_KEY = "primary_key";
+    private static final String SOURCE_INFO = "source_info";
 
 
     @Override
@@ -68,6 +73,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
         JSONObject param = JSON.parseObject(request.content().utf8ToString());
 
         JSONObject source = param.getJSONObject(SOURCE);
+        JSONObject sourceInfo = source.getJSONObject(SOURCE_INFO);
         JSONObject target = param.getJSONObject(TARGET);
         JSONObject remoteInfo = target.getJSONObject(REMOTE_INFO);
         JSONObject rules = param.getJSONObject(RULES);
@@ -91,6 +97,11 @@ public class FastReindexRestHandler extends BaseRestHandler {
         fastReindexRequest.setTargetResolver(target.getString(TARGET_RESOLVER));
         fastReindexRequest.setTargetType(target.getString(TARGET_TYPE));
 
+        fastReindexRequest.setNestFields(source.getString(NEST_FIELDS));
+        fastReindexRequest.setNeedFields(source.getString(NEED_FIELDS));
+        fastReindexRequest.setPrimaryKey(source.getString(PRIMARY_KEY));
+        fastReindexRequest.setSourceResolver(source.getString(SOURCE_RESOLVER));
+
         if (null != rules) {
             FastReindexRequest.RuleInfo ruleInfo = new FastReindexRequest.RuleInfo();
             ruleInfo.setRuleName(PACKAGE_NAME + rules.getString(RULE_NAME));
@@ -99,19 +110,12 @@ public class FastReindexRestHandler extends BaseRestHandler {
             fastReindexRequest.setRuleInfo(ruleInfo);
         }
 
+        if (null != sourceInfo) {
+            fastReindexRequest.setSourceInfo(getRemoteInfo(sourceInfo));
+        }
 
         if (null != remoteInfo) {
-            FastReindexRequest.FastReindexRemoteInfo fastReindexRemoteInfo = new FastReindexRequest.FastReindexRemoteInfo();
-            fastReindexRemoteInfo.setIp(remoteInfo.getString(TARGET_IP));
-            fastReindexRemoteInfo.setPort(remoteInfo.getInteger(TARGET_PORT));
-            fastReindexRemoteInfo.setClusterName(remoteInfo.getString(TARGET_NAME));
-            fastReindexRemoteInfo.setUsername(remoteInfo.getString(USERNAME));
-            fastReindexRemoteInfo.setPassword(remoteInfo.getString(PASSWORD));
-            if (remoteInfo.containsKey(HEADERS)) {
-                fastReindexRemoteInfo.setHeaders(remoteInfo.getJSONObject(HEADERS).getInnerMap());
-            }
-
-            fastReindexRequest.setRemoteInfo(fastReindexRemoteInfo);
+            fastReindexRequest.setRemoteInfo(getRemoteInfo(remoteInfo));
         }
 
 
@@ -132,6 +136,19 @@ public class FastReindexRestHandler extends BaseRestHandler {
         }
 
 
+    }
+
+    private FastReindexRequest.FastReindexRemoteInfo getRemoteInfo(JSONObject info) {
+        FastReindexRequest.FastReindexRemoteInfo fastReindexRemoteInfo = new FastReindexRequest.FastReindexRemoteInfo();
+        fastReindexRemoteInfo.setIp(info.getString(TARGET_IP));
+        fastReindexRemoteInfo.setPort(info.getInteger(TARGET_PORT));
+        fastReindexRemoteInfo.setClusterName(info.getString(TARGET_NAME));
+        fastReindexRemoteInfo.setUsername(info.getString(USERNAME));
+        fastReindexRemoteInfo.setPassword(info.getString(PASSWORD));
+        if (info.containsKey(HEADERS)) {
+            fastReindexRemoteInfo.setHeaders(info.getJSONObject(HEADERS).getInnerMap());
+        }
+        return fastReindexRemoteInfo;
     }
 
 

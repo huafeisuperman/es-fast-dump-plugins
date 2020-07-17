@@ -5,6 +5,7 @@ import com.youzan.fast.dump.common.IndexModeEnum;
 import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.common.reader.FileReader;
 import com.youzan.fast.dump.common.reader.LuceneFileReader;
+import com.youzan.fast.dump.common.reader.OrcFileReader;
 import com.youzan.fast.dump.resolver.DataResolve;
 import com.youzan.fast.dump.resolver.DataResolveFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -16,7 +17,6 @@ import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -24,7 +24,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -38,6 +37,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.youzan.fast.dump.common.ResolveTypeEnum.HIVE;
 import static com.youzan.fast.dump.plugins.FastReindexPlugin.FAST_REINDEX_THREAD_POOL_NAME;
 
 /**
@@ -225,15 +225,8 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 FastReindexShardResponse response = new FastReindexShardResponse();
                 response.setNodeId(request.getNodeId());
                 resolve = DataResolveFactory.getDataResolve(request, client);
-                FileReader fileReader = new LuceneFileReader(request.getFile(), task).
-                        setFieldInfo(fieldType).
-                        setQuery(request.getFastReindexRequest().getQuery()).
-                        setBatchSize(request.getFastReindexRequest().getBatchSize()).setThreadNum(request.getFastReindexRequest().getThreadNum()).
-                        setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
-                        setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
-                        setTargetType(request.getFastReindexRequest().getTargetType()).
-                        initRule(request.getFastReindexRequest().getTargetIndexType(),
-                                request.getFastReindexRequest().getRuleInfo());
+                FileReader fileReader;
+                fileReader = getFileReader(fieldType);
                 initialResource();
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
@@ -253,11 +246,43 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             }
         }
 
+        private FileReader getFileReader(Map<String, String> fieldType) throws Exception {
+            FileReader fileReader;
+            switch (ResolveTypeEnum.findResolveTypeEnum(request.getFastReindexRequest().getSourceResolver().toUpperCase())) {
+                case ES:
+                    fileReader = new LuceneFileReader(request.getFile(), task).
+                            setFieldInfo(fieldType).
+                            setQuery(request.getFastReindexRequest().getQuery()).
+                            setBatchSize(request.getFastReindexRequest().getBatchSize()).
+                            setThreadNum(request.getFastReindexRequest().getThreadNum()).
+                            setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
+                            setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
+                            setTargetType(request.getFastReindexRequest().getTargetType()).
+                            initRule(request.getFastReindexRequest().getTargetIndexType(), request.getFastReindexRequest().getRuleInfo());
+                    break;
+                case HIVE:
+                    fileReader = new OrcFileReader(request.getFile(),
+                            task, request.getFastReindexRequest().getSourceInfo()).
+                            setNeedFields(request.getFastReindexRequest().getNeedFields()).
+                            setPrimaryKey(request.getFastReindexRequest().getPrimaryKey()).
+                            setNestFields(request.getFastReindexRequest().getNestFields()).
+                            setBatchSize(request.getFastReindexRequest().getBatchSize()).
+                            setThreadNum(request.getFastReindexRequest().getThreadNum()).
+                            setOneFileThreadNum(request.getFastReindexRequest().getOneFileThreadNum()).
+                            setMode(IndexModeEnum.findModeEnum(request.getFastReindexRequest().getMode())).
+                            initRule(request.getFastReindexRequest().getTargetIndexType(), request.getFastReindexRequest().getRuleInfo());
+                    break;
+                default:
+                    throw new RuntimeException("not support resolver" + request.getFastReindexRequest().getSourceResolver());
+            }
+            return fileReader;
+        }
+
         private void initialResource() {
             AccessController.doPrivileged(
                     (PrivilegedAction<Configuration>) () -> {
                         try {
-                            if (request.getFastReindexRequest().getTargetResolver().toUpperCase().equals(ResolveTypeEnum.HIVE.getResolveType())) {
+                            if (request.getFastReindexRequest().getTargetResolver().toUpperCase().equals(HIVE.getResolveType())) {
                                 Configuration conf = new HdfsConfClient(request.getFastReindexRequest().getRemoteInfo()).getClient();
                                 FileSystem fs = FileSystem.get(conf);
                                 fs.delete(new Path(request.getFastReindexRequest().getTargetIndex()));

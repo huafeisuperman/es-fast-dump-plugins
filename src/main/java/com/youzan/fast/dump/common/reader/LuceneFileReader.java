@@ -162,6 +162,7 @@ public class LuceneFileReader extends AbstractFileReader {
             this.bitSet = bitSet;
         }
 
+        @SuppressWarnings("all")
         @Override
         public String call() throws Exception {
             List<JSONObject> records = new ArrayList<>(batchSize);

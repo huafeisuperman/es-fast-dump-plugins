@@ -28,7 +28,7 @@ public class FastReindexRequest extends ActionRequest {
 
     }
 
-    public FastReindexRequest(StreamInput input) throws IOException{
+    public FastReindexRequest(StreamInput input) throws IOException {
         super(input);
 
     }
@@ -39,11 +39,21 @@ public class FastReindexRequest extends ActionRequest {
 
     protected String targetIndexType;
 
+    protected FastReindexRemoteInfo sourceInfo;
+
+    protected String sourceResolver;
+
     protected String targetIndex;
 
     protected String targetType;
 
     protected String query;
+
+    private String needFields;
+
+    private String primaryKey;
+
+    private String nestFields;
 
     protected FastReindexRemoteInfo remoteInfo;
 
@@ -105,7 +115,7 @@ public class FastReindexRequest extends ActionRequest {
         public RuleInfo(StreamInput in) throws IOException {
             ruleName = in.readString();
             field = in.readString();
-            rules= in.readString();
+            rules = in.readString();
         }
     }
 
@@ -139,7 +149,7 @@ public class FastReindexRequest extends ActionRequest {
             ip = in.readString();
             clusterName = in.readOptionalString();
             port = in.readInt();
-            headers =  in.readMap();
+            headers = in.readMap();
             username = in.readOptionalString();
             password = in.readOptionalString();
             connectTimeout = in.readLong();

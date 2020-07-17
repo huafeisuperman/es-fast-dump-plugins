@@ -10,7 +10,6 @@ import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +35,7 @@ public class FastReindexShardRequest extends ActionRequest {
         file = Arrays.asList(in.readStringArray());
         fastReindexRequest.setMode(in.readString());
         fastReindexRequest.setSourceIndex(in.readString());
+        fastReindexRequest.setSourceResolver(in.readString());
         fastReindexRequest.setTargetIndex(in.readString());
         fastReindexRequest.setTargetResolver(in.readString());
         fastReindexRequest.setTargetIndexType(in.readString());
@@ -45,6 +45,10 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setPerNodeSpeedLimit(in.readInt());
         fastReindexRequest.setThreadNum(in.readInt());
         fastReindexRequest.setQuery(in.readOptionalString());
+        fastReindexRequest.setNeedFields(in.readOptionalString());
+        fastReindexRequest.setPrimaryKey(in.readOptionalString());
+        fastReindexRequest.setNestFields(in.readOptionalString());
+        fastReindexRequest.setSourceInfo(in.readOptionalWriteable(FastReindexRequest.FastReindexRemoteInfo::new));
         fastReindexRequest.setRemoteInfo(in.readOptionalWriteable(FastReindexRequest.FastReindexRemoteInfo::new));
         fastReindexRequest.setRuleInfo(in.readOptionalWriteable(FastReindexRequest.RuleInfo::new));
     }
@@ -70,6 +74,7 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeStringArray(file.toArray(new String[]{}));
         out.writeString(fastReindexRequest.getMode());
         out.writeString(fastReindexRequest.getSourceIndex());
+        out.writeString(fastReindexRequest.getSourceResolver());
         out.writeString(fastReindexRequest.getTargetIndex());
         out.writeString(fastReindexRequest.getTargetResolver());
         out.writeString(fastReindexRequest.getTargetIndexType());
@@ -79,6 +84,10 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeInt(fastReindexRequest.getPerNodeSpeedLimit());
         out.writeInt(fastReindexRequest.getThreadNum());
         out.writeOptionalString(fastReindexRequest.getQuery());
+        out.writeOptionalString(fastReindexRequest.getNeedFields());
+        out.writeOptionalString(fastReindexRequest.getPrimaryKey());
+        out.writeOptionalString(fastReindexRequest.getNestFields());
+        out.writeOptionalWriteable(fastReindexRequest.getSourceInfo());
         out.writeOptionalWriteable(fastReindexRequest.getRemoteInfo());
         out.writeOptionalWriteable(fastReindexRequest.getRuleInfo());
     }
