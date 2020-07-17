@@ -1,10 +1,14 @@
 package com.youzan.fast.dump.plugins;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.youzan.fast.dump.client.HdfsConfClient;
 import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.resource.ESFileResource;
 import com.youzan.fast.dump.resource.FileResource;
 import com.youzan.fast.dump.resource.HiveFileResource;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
@@ -14,9 +18,13 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportService;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.youzan.fast.dump.common.ResolveTypeEnum.HIVE;
 
 /**
  * Description:
@@ -53,9 +61,9 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
                     fileResource = new ESFileResource(client);
                     break;
                 case HIVE:
-                    List<String> ips = new ArrayList<>();
-                    clusterService.state().nodes().forEach(node -> ips.add(node.getAddress().getAddress()));
-                    fileResource = new HiveFileResource(ips);
+                    List<String> nodeIds = new ArrayList<>();
+                    clusterService.state().nodes().forEach(node -> nodeIds.add(node.getId()));
+                    fileResource = new HiveFileResource(nodeIds);
                     break;
                 default:
                     throw new RuntimeException("not find source resolver " + request.getSourceResolver());
@@ -67,6 +75,7 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
             if (nodeIdFile.size() > 0) {
                 final AtomicInteger counter = new AtomicInteger(nodeIdFile.keySet().size());
                 final FastReindexResponse fastReindexResponse = new FastReindexResponse();
+                initialResource(request);
                 nodeIdFile.keySet().forEach(key -> {
                     FastReindexShardRequest fastReindexShardRequest = new FastReindexShardRequest();
                     fastReindexShardRequest.setFastReindexRequest(request);
@@ -106,6 +115,25 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
         } catch (Exception e) {
             listener.onFailure(e);
         }
+
+    }
+
+    private void initialResource(FastReindexRequest request) {
+        AccessController.doPrivileged(
+                (PrivilegedAction<Configuration>) () -> {
+                    try {
+                        if (request.getTargetResolver().toUpperCase().equals(HIVE.getResolveType())) {
+                            Configuration conf = new HdfsConfClient(request.getRemoteInfo()).getClient();
+                            FileSystem fs = FileSystem.get(conf);
+                            fs.delete(new Path(request.getTargetIndex()));
+                            fs.mkdirs(new Path(request.getTargetIndex()));
+                            fs.close();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                });
 
     }
 

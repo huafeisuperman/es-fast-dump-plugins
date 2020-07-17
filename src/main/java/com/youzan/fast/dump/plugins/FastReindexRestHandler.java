@@ -34,9 +34,9 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String SOURCE_INDEX = "source_index";
     private static final String MODE = "mode";
     private static final String TARGET_INDEX = "target_index";
-    private static final String TARGET_IP = "target_ip";
-    private static final String TARGET_PORT = "target_port";
-    private static final String TARGET_NAME = "target_name";
+    private static final String IP = "ip";
+    private static final String PORT = "port";
+    private static final String CLUSTER_NAME = "cluster_name";
     private static final String TARGET_TYPE = "target_type";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
@@ -140,9 +140,9 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
     private FastReindexRequest.FastReindexRemoteInfo getRemoteInfo(JSONObject info) {
         FastReindexRequest.FastReindexRemoteInfo fastReindexRemoteInfo = new FastReindexRequest.FastReindexRemoteInfo();
-        fastReindexRemoteInfo.setIp(info.getString(TARGET_IP));
-        fastReindexRemoteInfo.setPort(info.getInteger(TARGET_PORT));
-        fastReindexRemoteInfo.setClusterName(info.getString(TARGET_NAME));
+        fastReindexRemoteInfo.setIp(info.getString(IP));
+        fastReindexRemoteInfo.setPort(info.getInteger(PORT));
+        fastReindexRemoteInfo.setClusterName(info.getString(CLUSTER_NAME));
         fastReindexRemoteInfo.setUsername(info.getString(USERNAME));
         fastReindexRemoteInfo.setPassword(info.getString(PASSWORD));
         if (info.containsKey(HEADERS)) {

@@ -213,8 +213,9 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             try {
                 Map<String, String> fieldType = new HashMap<>();
                 if (null != request.getFastReindexRequest().getQuery()) {
-                    Iterator<MappingMetaData> iterator = client.admin().indices().getMappings(new GetMappingsRequest().indices(request.getFastReindexRequest().getSourceIndex())).
-                            get().getMappings().get(request.getFastReindexRequest().getSourceIndex()).valuesIt();
+                    String index = request.getFastReindexRequest().getSourceIndex().split(",")[0];
+                    Iterator<MappingMetaData> iterator = client.admin().indices().getMappings(new GetMappingsRequest().indices(index)).
+                            get().getMappings().get(index).valuesIt();
                     while (iterator.hasNext()) {
                         MappingMetaData mappingMetaData = iterator.next();
                         for (Map.Entry<String, Object> entry : ((Map<String, Object>) mappingMetaData.getSourceAsMap().get("properties")).entrySet()) {
@@ -227,7 +228,6 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 resolve = DataResolveFactory.getDataResolve(request, client);
                 FileReader fileReader;
                 fileReader = getFileReader(fieldType);
-                initialResource();
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
                 ResponseListener rl = new TransportNodeFastReindexAction.AsyncShardAction.ResponseListener();
@@ -276,25 +276,6 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                     throw new RuntimeException("not support resolver" + request.getFastReindexRequest().getSourceResolver());
             }
             return fileReader;
-        }
-
-        private void initialResource() {
-            AccessController.doPrivileged(
-                    (PrivilegedAction<Configuration>) () -> {
-                        try {
-                            if (request.getFastReindexRequest().getTargetResolver().toUpperCase().equals(HIVE.getResolveType())) {
-                                Configuration conf = new HdfsConfClient(request.getFastReindexRequest().getRemoteInfo()).getClient();
-                                FileSystem fs = FileSystem.get(conf);
-                                fs.delete(new Path(request.getFastReindexRequest().getTargetIndex()));
-                                fs.mkdirs(new Path(request.getFastReindexRequest().getTargetIndex()));
-                                fs.close();
-                            }
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                        return null;
-                    });
-
         }
 
         @Override
