@@ -94,7 +94,7 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
 
                         @Override
                         public void onFailure(Exception e) {
-                            logger.error(e);
+                            logger.error("deal error", e);
                             // create failures for all relevant requests
                             fastReindexResponse.getStatus().put(key.toString(), new FastReindexResponse.ResponseStatus(false, e.toString()));
                             fastReindexResponse.getMap().put(key.toString(), new ArrayList<>());

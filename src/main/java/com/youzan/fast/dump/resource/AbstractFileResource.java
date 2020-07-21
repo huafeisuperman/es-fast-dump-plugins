@@ -19,7 +19,7 @@ public abstract class AbstractFileResource implements FileResource {
 
     public void assignResourceToNode(String targetIndex, ArrayListMultimap resultMap, String type, List<String> fileList) throws Exception {
         for (int i = 0; i < fileList.size(); i++) {
-            resultMap.put(ips.get(i % ips.size()), targetIndex + ":" + type + ":" + fileList.get(i));
+            resultMap.put(ips.get(i % ips.size()), targetIndex + ":" + (type == null ? "_doc" : type)   + ":" + fileList.get(i));
         }
     }
 }

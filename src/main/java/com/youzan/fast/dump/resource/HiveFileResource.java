@@ -39,7 +39,10 @@ public class HiveFileResource extends AbstractFileResource implements FileResour
                         for (String resource : resources) {
                             RemoteIterator<LocatedFileStatus> list = fs.listFiles(new Path(resource), false);
                             while (list.hasNext()) {
-                                fileList.add(list.next().getPath().toString().split(sourceInfo.getClusterName())[1]);
+                                String path = list.next().getPath().toString().split(sourceInfo.getClusterName())[1];
+                                if (!path.contains("_SUCCESS")) {
+                                    fileList.add(path);
+                                }
                             }
                         }
                         assignResourceToNode(targetResource, resultMap, type, fileList);

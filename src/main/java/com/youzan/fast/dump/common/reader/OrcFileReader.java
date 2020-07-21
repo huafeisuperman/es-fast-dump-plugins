@@ -9,13 +9,17 @@ import com.youzan.fast.dump.common.rules.Rule;
 import com.youzan.fast.dump.plugins.FastReindexRequest;
 import com.youzan.fast.dump.plugins.FastReindexTask;
 import com.youzan.fast.dump.resolver.DataResolve;
+import lombok.NonNull;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.*;
 import org.apache.orc.OrcFile;
 import org.apache.orc.Reader;
 import org.apache.orc.RecordReader;
+import org.omg.CORBA.portable.ValueOutputStream;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -32,13 +36,15 @@ public class OrcFileReader extends AbstractFileReader {
     private Configuration conf;
 
     //主键
+    @NonNull
     private String primaryKey;
 
     //需要导的字段
+    @NonNull
     private Set<String> needFields;
 
     //是nest类型的字段
-    private Set<String> nestFields;
+    private Set<String> nestFields = new HashSet<>();
 
     public OrcFileReader(List<String> files, FastReindexTask task, FastReindexRequest.FastReindexRemoteInfo sourceInfo) throws Exception {
         super(files, task);
@@ -51,12 +57,16 @@ public class OrcFileReader extends AbstractFileReader {
     }
 
     public OrcFileReader setNeedFields(String fields) {
-        this.needFields = Sets.newHashSet(fields.split(","));
+        if (null != fields) {
+            this.needFields = Sets.newHashSet(fields.split(","));
+        }
         return this;
     }
 
-    public OrcFileReader setNestFields(String nestFileds) {
-        this.nestFields = Sets.newHashSet(nestFileds.split(","));
+    public OrcFileReader setNestFields(String nestFields) {
+        if (null != nestFields) {
+            this.nestFields = Sets.newHashSet(nestFields.split(","));
+        }
         return this;
     }
 
@@ -64,34 +74,40 @@ public class OrcFileReader extends AbstractFileReader {
     public void resolveFile(String file, DataResolve dataResolve, ExecutorService pool) throws Exception {
         String[] targetAndFile = file.split(":");
         FileReadStatus fileReadStatus = new FileReadStatus(targetAndFile[2], 0, 0);
-        try {
-            fileReadList.add(fileReadStatus);
-            Reader reader = OrcFile.createReader(new Path(targetAndFile[2]),
-                    OrcFile.readerOptions(conf));
-            fileReadStatus.setTotalCount(reader.getNumberOfRows());
-            List<String> fieldNames = reader.getSchema().getFieldNames();
-            Map<String, Integer> fieldIndexMap = new LinkedHashMap<>();
-            for (int i = 0; i < fieldNames.size(); i++) {
-                if (needFields.contains(fieldNames.get(i))) {
-                    fieldIndexMap.put(fieldNames.get(i), i);
-                }
-            }
-            List<Future> futures = new ArrayList<>();
-            //hive这边单文件暂时就1个线程
-            for (int i = 0; i < 1; i++) {
-                futures.add(pool.submit(new DealDocument(reader, dataResolve, fileReadStatus,
-                        targetAndFile[0], targetAndFile[1], fieldIndexMap)));
-            }
-            pool.shutdown();
-            for (Future future : futures) {
-                future.get();
-            }
-            fileReadStatus.setStatus(StatusEnum.SUCCESS.getStatus());
-        } catch (Exception e) {
-            fileReadStatus.setStatus(StatusEnum.FAILED.getStatus());
-            pool.shutdownNow();
-            throw e;
-        }
+        AccessController.doPrivileged(
+                (PrivilegedAction<Void>) () -> {
+                    try {
+                        fileReadList.add(fileReadStatus);
+                        Reader reader = OrcFile.createReader(new Path(targetAndFile[2]),
+                                OrcFile.readerOptions(conf));
+                        fileReadStatus.setTotalCount(reader.getNumberOfRows());
+                        List<String> fieldNames = reader.getSchema().getFieldNames();
+                        Map<String, Integer> fieldIndexMap = new LinkedHashMap<>();
+                        for (int i = 0; i < fieldNames.size(); i++) {
+                            if (needFields.contains(fieldNames.get(i))) {
+                                fieldIndexMap.put(fieldNames.get(i), i);
+                            }
+                        }
+                        List<Future> futures = new ArrayList<>();
+                        //hive这边单文件暂时就1个线程
+                        for (int i = 0; i < 1; i++) {
+                            futures.add(pool.submit(new DealDocument(reader, dataResolve, fileReadStatus,
+                                    targetAndFile[0], targetAndFile[1], fieldIndexMap)));
+                        }
+                        pool.shutdown();
+                        for (Future future : futures) {
+                            future.get();
+                        }
+                        fileReadStatus.setStatus(StatusEnum.SUCCESS.getStatus());
+                    } catch (Exception e) {
+                        fileReadStatus.setStatus(StatusEnum.FAILED.getStatus());
+                        fileReadStatus.setMsg(e.toString());
+                        pool.shutdownNow();
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                });
+
 
     }
 

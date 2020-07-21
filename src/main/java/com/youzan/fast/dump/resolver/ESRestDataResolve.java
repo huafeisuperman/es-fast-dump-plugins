@@ -71,8 +71,10 @@ public class ESRestDataResolve extends BaseDataResolve {
 
                                 } else {
                                     jsonObject.put("index", childJson);
-                                    childJson.put("version", record.getLong("version"));
-                                    childJson.put("version_type", VersionType.EXTERNAL_GTE.toString().toLowerCase());
+                                    if (null != record.getLong("version")) {
+                                        childJson.put("version", record.getLong("version"));
+                                        childJson.put("version_type", VersionType.EXTERNAL_GTE.toString().toLowerCase());
+                                    }
                                 }
                                 recordBuilder.append(jsonObject.toJSONString()).append("\n");
                                 recordBuilder.append(source).append("\n");
