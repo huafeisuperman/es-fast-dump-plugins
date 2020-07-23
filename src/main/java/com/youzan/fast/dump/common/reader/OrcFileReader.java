@@ -144,6 +144,9 @@ public class OrcFileReader extends AbstractFileReader {
                     JSONObject source = new JSONObject();
                     row.put("type", targetStorageType);
                     transform(batch, r, source);
+                    if (source.size() == 0) {
+                        continue;
+                    }
                     row.put("source", source);
                     row.put("_id", source.get(primaryKey));
                     source.remove(primaryKey);
