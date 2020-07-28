@@ -63,7 +63,7 @@ public class ESDataResolve extends BaseDataResolve {
             int retryTimes = 0;
             while (hasFailures(responses)) {
                 if (retryTimes < 2) {
-                    Thread.sleep(1000L);
+                    Thread.sleep(5000L);
                     responses = bulkRequest.get();
                     retryTimes++;
                 } else {

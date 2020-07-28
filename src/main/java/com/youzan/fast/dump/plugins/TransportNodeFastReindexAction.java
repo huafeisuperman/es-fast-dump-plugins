@@ -226,6 +226,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 FastReindexShardResponse response = new FastReindexShardResponse();
                 response.setNodeId(request.getNodeId());
                 resolve = DataResolveFactory.getDataResolve(request, client);
+                TaskIdContext.put(task.getParentTaskId().toString(), new TaskIdContext.ResolveSpeed(request.getTotalNodeSize(), resolve));
                 FileReader fileReader;
                 fileReader = getFileReader(fieldType);
                 fileReader.foreachFile(resolve);
@@ -237,6 +238,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 TransportNodeFastReindexAction.AsyncShardAction.this.onFailure(e);
             } finally {
                 try {
+                    TaskIdContext.remove(task.getParentTaskId().toString());
                     if (null != resolve) {
                         resolve.close();
                     }

@@ -63,6 +63,8 @@ public class FastReindexRequest extends ActionRequest {
 
     protected int perNodeSpeedLimit = 50000;
 
+    protected int speedLimit = 100000;
+
     private int batchSize = 1000;
 
     private int threadNum = 1;

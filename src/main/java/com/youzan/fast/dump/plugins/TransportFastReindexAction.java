@@ -73,14 +73,23 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
                     request.getTargetIndexType(), request.getTargetIndex(), request.getTargetType());
 
             if (nodeIdFile.size() > 0) {
-                final AtomicInteger counter = new AtomicInteger(nodeIdFile.keySet().size());
+                int nodeCount = nodeIdFile.keySet().size();
+                int perNodeSpeed = request.getSpeedLimit() / nodeCount;
+                if (perNodeSpeed <= 0 ) {
+                    perNodeSpeed = 10;
+                }
+                request.setPerNodeSpeedLimit(perNodeSpeed);
+                final AtomicInteger counter = new AtomicInteger(nodeCount);
                 final FastReindexResponse fastReindexResponse = new FastReindexResponse();
                 initialResource(request);
                 nodeIdFile.keySet().forEach(key -> {
                     FastReindexShardRequest fastReindexShardRequest = new FastReindexShardRequest();
                     fastReindexShardRequest.setFastReindexRequest(request);
                     fastReindexShardRequest.setFile(nodeIdFile.get(key));
-                    fastReindexResponse.setTotalFile(fastReindexResponse.getTotalFile() + nodeIdFile.get(key).size());
+                    fastReindexShardRequest.setTotalNodeSize(nodeCount);
+                    synchronized (this) {
+                        fastReindexResponse.setTotalFile(fastReindexResponse.getTotalFile() + nodeIdFile.get(key).size());
+                    }
                     fastReindexShardRequest.setNodeId(key.toString());
                     request.setShouldStoreResult(true);
                     transportNodeFastReindexAction.execute(task, fastReindexShardRequest, new ActionListener<FastReindexShardResponse>() {
@@ -109,6 +118,8 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
                         }
                     });
                 });
+            } else {
+                listener.onResponse(new FastReindexResponse());
             }
 
 

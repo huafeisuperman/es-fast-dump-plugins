@@ -26,6 +26,8 @@ public class FastReindexShardRequest extends ActionRequest {
 
     private List<String> file;
 
+    private int totalNodeSize;
+
     private FastReindexRequest fastReindexRequest;
 
     public FastReindexShardRequest(StreamInput in) throws IOException {
@@ -33,6 +35,7 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest = new FastReindexRequest();
         nodeId = in.readString();
         file = Arrays.asList(in.readStringArray());
+        totalNodeSize = in.readInt();
         fastReindexRequest.setMode(in.readString());
         fastReindexRequest.setSourceIndex(in.readString());
         fastReindexRequest.setSourceResolver(in.readString());
@@ -43,6 +46,7 @@ public class FastReindexShardRequest extends ActionRequest {
         fastReindexRequest.setBatchSize(in.readInt());
         fastReindexRequest.setOneFileThreadNum(in.readInt());
         fastReindexRequest.setPerNodeSpeedLimit(in.readInt());
+        fastReindexRequest.setSpeedLimit(in.readInt());
         fastReindexRequest.setThreadNum(in.readInt());
         fastReindexRequest.setQuery(in.readOptionalString());
         fastReindexRequest.setNeedFields(in.readOptionalString());
@@ -72,6 +76,7 @@ public class FastReindexShardRequest extends ActionRequest {
         super.writeTo(out);
         out.writeString(nodeId);
         out.writeStringArray(file.toArray(new String[]{}));
+        out.writeInt(totalNodeSize);
         out.writeString(fastReindexRequest.getMode());
         out.writeString(fastReindexRequest.getSourceIndex());
         out.writeString(fastReindexRequest.getSourceResolver());
@@ -82,6 +87,7 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeInt(fastReindexRequest.getBatchSize());
         out.writeInt(fastReindexRequest.getOneFileThreadNum());
         out.writeInt(fastReindexRequest.getPerNodeSpeedLimit());
+        out.writeInt(fastReindexRequest.getSpeedLimit());
         out.writeInt(fastReindexRequest.getThreadNum());
         out.writeOptionalString(fastReindexRequest.getQuery());
         out.writeOptionalString(fastReindexRequest.getNeedFields());

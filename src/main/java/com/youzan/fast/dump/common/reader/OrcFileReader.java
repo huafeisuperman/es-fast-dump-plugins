@@ -157,6 +157,10 @@ public class OrcFileReader extends AbstractFileReader {
                         for (Rule rule : ruleList) {
                             rule.transform(row);
                         }
+                        //过滤些记录
+                        if (row.containsKey("need_filter")) {
+                            continue;
+                        }
                         if (0 == indexSet.size()) {
                             indexSet.add(targetStorage);
                         }

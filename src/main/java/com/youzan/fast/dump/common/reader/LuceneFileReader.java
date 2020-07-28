@@ -198,9 +198,6 @@ public class LuceneFileReader extends AbstractFileReader {
                     typeAndId[0] = uid.split("#", -1)[0];
                     typeAndId[1] = uid.substring(typeAndId[0].length() + 1);
                 }
-                /*if (!"all".equals(type) && !typeAndId[0].equals(type)) {
-                    continue;
-                }*/
 
                 JSONObject source = (JSONObject) JSON.parse(new String(document.getField("_source").binaryValue().bytes),
                         Feature.config(JSON.DEFAULT_PARSER_FEATURE, Feature.UseBigDecimal, false));
@@ -238,6 +235,10 @@ public class LuceneFileReader extends AbstractFileReader {
                 if (isCustomType) {
                     for (Rule rule : ruleList) {
                         rule.transform(record);
+                    }
+                    //过滤一些记录
+                    if (record.containsKey("need_filter")) {
+                        continue;
                     }
                     if (0 == indexSet.size()) {
                         indexSet.add(index);

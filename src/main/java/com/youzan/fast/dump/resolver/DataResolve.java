@@ -21,4 +21,6 @@ public interface DataResolve<T> extends BaseLogger {
     void commit() throws Exception;
 
     void close() throws Exception;
+
+    void changeSpeed(int speed);
 }

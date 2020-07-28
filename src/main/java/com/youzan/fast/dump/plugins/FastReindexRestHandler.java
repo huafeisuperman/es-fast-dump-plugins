@@ -43,6 +43,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String TARGET_RESOLVER = "target_resolver";
     private static final String BATCH_SIZE = "batch_size";
     private static final String THREAD_NUM = "thread_num";
+    private static final String SPEED_LIMIT = "speed_limit";
     private static final String ONE_FILE_THREAD_NUM = "one_file_thread_num";
     private static final String TARGET_INDEX_TYPE = "target_index_type";
     private static final String PACKAGE_NAME = "com.youzan.fast.dump.common.rules.";
@@ -51,6 +52,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String RULE_VALUE = "rule_value";
     private static final int DEFAULT_BATCH_SIZE = 1000;
     private static final int DEFAULT_THREAD_NUM = 1;
+    private static final int DEFAULT_SPEED_LIMIT = 100000;
     private static final int DEFAULT_ONE_FILE_THREAD_NUM = 1;
     private static final String HEADERS = "headers";
     private static final String WAIT_FOR_COMPLETION = "wait_for_completion";
@@ -82,6 +84,7 @@ public class FastReindexRestHandler extends BaseRestHandler {
         fastReindexRequest.setMode(source.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
         fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, DEFAULT_BATCH_SIZE).toString()));
         fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, DEFAULT_THREAD_NUM).toString()));
+        fastReindexRequest.setSpeedLimit(Integer.parseInt(source.getOrDefault(SPEED_LIMIT, DEFAULT_SPEED_LIMIT).toString()));
         fastReindexRequest.setOneFileThreadNum(Integer.parseInt(source.getOrDefault(ONE_FILE_THREAD_NUM, DEFAULT_ONE_FILE_THREAD_NUM).toString()));
         AccessController.doPrivileged(
                 (PrivilegedAction<Void>) () -> {

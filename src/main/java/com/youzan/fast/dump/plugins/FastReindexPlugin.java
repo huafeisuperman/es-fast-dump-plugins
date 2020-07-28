@@ -1,5 +1,8 @@
 package com.youzan.fast.dump.plugins;
 
+import com.youzan.fast.dump.plugins.speed.FastReindexSpeedAction;
+import com.youzan.fast.dump.plugins.speed.FastReindexSpeedRestHandler;
+import com.youzan.fast.dump.plugins.speed.TransportFastReindexSpeedAction;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -31,15 +34,15 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
 
     public static final String NAME = "fast_reindex";
 
-    public static final String FAST_REINDEX_SIZE_KEY =  "thread_pool.fast_reindex.size";
+    public static final String FAST_REINDEX_SIZE_KEY = "thread_pool.fast_reindex.size";
 
     public static final String FAST_REINDEX_QUEUE_SIZE_KEY = "thread_pool.fast_reindex.queue_size";
 
     public static final String FAST_REINDEX_THREAD_POOL_NAME = NAME;
 
-    public static final int FAST_REINDEX_THREAD_POOL_SIZE= 1;
+    public static final int FAST_REINDEX_THREAD_POOL_SIZE = 4;
 
-    public static final int FAST_REINDEX_THREAD_POOL_QUEUE_SIZE = 2;
+    public static final int FAST_REINDEX_THREAD_POOL_QUEUE_SIZE = 10;
 
     public static final Setting<Integer> SIZE = Setting.intSetting(FAST_REINDEX_SIZE_KEY, FAST_REINDEX_THREAD_POOL_SIZE, Setting.Property.NodeScope);
 
@@ -48,7 +51,8 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
 
-        return Arrays.asList(new ActionHandler<>(FastReindexAction.INSTANCE, TransportFastReindexAction.class));
+        return Arrays.asList(new ActionHandler(FastReindexAction.INSTANCE, TransportFastReindexAction.class),
+                new ActionHandler(FastReindexSpeedAction.INSTANCE, TransportFastReindexSpeedAction.class));
     }
 
     @Override
@@ -56,7 +60,8 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
                                              IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
                                              IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
         return Arrays.asList(
-                new FastReindexRestHandler(restController));
+                new FastReindexRestHandler(restController),
+                new FastReindexSpeedRestHandler(restController));
     }
 
     @Override
@@ -67,7 +72,9 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
     @Override
     public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
         return Collections.singletonList(new FixedExecutorBuilder(settings, FAST_REINDEX_THREAD_POOL_NAME,
-                settings.getAsInt(FAST_REINDEX_SIZE_KEY,  1), settings.getAsInt(FAST_REINDEX_QUEUE_SIZE_KEY, 3), "fast_reindex_thread_pool"));
+                settings.getAsInt(FAST_REINDEX_SIZE_KEY, FAST_REINDEX_THREAD_POOL_SIZE),
+                settings.getAsInt(FAST_REINDEX_QUEUE_SIZE_KEY, FAST_REINDEX_THREAD_POOL_QUEUE_SIZE),
+                "fast_reindex_thread_pool"));
     }
 
     @Override

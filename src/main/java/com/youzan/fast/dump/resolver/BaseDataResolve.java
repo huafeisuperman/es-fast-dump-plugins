@@ -2,6 +2,8 @@ package com.youzan.fast.dump.resolver;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.util.concurrent.RateLimiter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
@@ -18,6 +20,8 @@ public abstract class BaseDataResolve implements DataResolve<List<JSONObject>> {
 
     protected RateLimiter rateLimiter;
 
+    protected Logger logger = LogManager.getLogger(getClass());
+
     public BaseDataResolve(int speedLimit) {
         rateLimiter = RateLimiter.create(speedLimit);
     }
@@ -30,4 +34,13 @@ public abstract class BaseDataResolve implements DataResolve<List<JSONObject>> {
     public void commit() throws Exception {
 
     }
+
+    @Override
+    public void changeSpeed(int speed) {
+        int oldSpeed = (int) (rateLimiter.getRate());
+        rateLimiter = RateLimiter.create(speed);
+        logger.info("speed change[{}->{}]", oldSpeed, speed);
+    }
+
+
 }
