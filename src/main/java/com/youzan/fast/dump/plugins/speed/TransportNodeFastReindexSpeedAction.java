@@ -5,7 +5,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -27,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @date: 2020.07.24
  */
 public class TransportNodeFastReindexSpeedAction extends TransportAction<FastReindexSpeedRequest, FastReindexSpeedNodeResponse> {
-    public static final String ACTION_NAME = FastReindexSpeedAction.NAME + "[s]";
+    public static final String ACTION_NAME = FastReindexSpeedAction.NAME + "[n]";
 
     private TransportService transportService;
 
@@ -36,27 +35,26 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
     @Inject
     public TransportNodeFastReindexSpeedAction(ClusterService clusterService,
                                                ActionFilters actionFilters,
-                                               Client client,
                                                TransportService transportService) {
         super(ACTION_NAME, actionFilters, transportService.getTaskManager());
         this.transportService = transportService;
-        transportService.registerRequestHandler(actionName, ThreadPool.Names.GENERIC, FastReindexSpeedRequest::new, new TransportNodeFastReindexSpeedAction.ShardOperationTransportHandler());
+        transportService.registerRequestHandler(actionName, ThreadPool.Names.GENERIC, FastReindexSpeedRequest::new, new TransportNodeFastReindexSpeedAction.NodeOperationTransportHandler());
         this.clusterService = clusterService;
     }
 
 
     @Override
     protected void doExecute(Task task, FastReindexSpeedRequest request, ActionListener<FastReindexSpeedNodeResponse> listener) {
-        new TransportNodeFastReindexSpeedAction.ShardReroutePhase(request, listener).run();
+        new TransportNodeFastReindexSpeedAction.NodeReroutePhase(request, listener).run();
     }
 
 
-    final class ShardReroutePhase extends AbstractRunnable {
+    final class NodeReroutePhase extends AbstractRunnable {
         private final ActionListener<FastReindexSpeedNodeResponse> listener;
         private final FastReindexSpeedRequest request;
         private final AtomicBoolean finished = new AtomicBoolean();
 
-        ShardReroutePhase(FastReindexSpeedRequest request, ActionListener<FastReindexSpeedNodeResponse> listener) {
+        NodeReroutePhase(FastReindexSpeedRequest request, ActionListener<FastReindexSpeedNodeResponse> listener) {
             this.request = request;
             this.listener = listener;
         }
@@ -94,7 +92,7 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
                 @Override
                 public void handleException(TransportException exp) {
                     try {
-                        // if we got disconnected from the node, or the node / shard is not in the right state (being closed)
+                        // if we got disconnected from the node, or the node is not in the right state (being closed)
                         finishAsFailed(exp);
                     } catch (Exception e) {
                         e.addSuppressed(exp);
@@ -146,23 +144,23 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
     }
 
 
-    class ShardOperationTransportHandler implements TransportRequestHandler<FastReindexSpeedRequest> {
+    class NodeOperationTransportHandler implements TransportRequestHandler<FastReindexSpeedRequest> {
 
 
         @Override
         public void messageReceived(FastReindexSpeedRequest request, TransportChannel channel, Task task) throws Exception {
-            new TransportNodeFastReindexSpeedAction.AsyncShardAction(request, channel, task).run();
+            new TransportNodeFastReindexSpeedAction.AsyncNodeAction(request, channel, task).run();
         }
 
     }
 
-    private final class AsyncShardAction extends AbstractRunnable implements ActionListener<Releasable> {
+    private final class AsyncNodeAction extends AbstractRunnable implements ActionListener<Releasable> {
         private final FastReindexSpeedRequest request;
 
         private final TransportChannel channel;
 
 
-        AsyncShardAction(FastReindexSpeedRequest request, TransportChannel channel, Task task) {
+        AsyncNodeAction(FastReindexSpeedRequest request, TransportChannel channel, Task task) {
             this.request = request;
             this.channel = channel;
         }
@@ -179,11 +177,11 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
                     response.setNodeSpeed(dataResolve.changeSpeed(request.getSpeed()));
                     response.setSuccess(true);
                 }
-                TransportNodeFastReindexSpeedAction.AsyncShardAction.ResponseListener rl = new TransportNodeFastReindexSpeedAction.AsyncShardAction.ResponseListener();
+                TransportNodeFastReindexSpeedAction.AsyncNodeAction.ResponseListener rl = new TransportNodeFastReindexSpeedAction.AsyncNodeAction.ResponseListener();
                 rl.onResponse(response);
             } catch (Exception e) {
-                Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller
-                TransportNodeFastReindexSpeedAction.AsyncShardAction.this.onFailure(e);
+                Releasables.closeWhileHandlingException(releasable); // release node operation lock before responding to caller
+                TransportNodeFastReindexSpeedAction.AsyncNodeAction.this.onFailure(e);
             }
         }
 
@@ -221,7 +219,7 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
             @Override
             public void onResponse(TransportResponse response) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("id [{}] completed on shard for speed [{}]", request.getId(), request.getSpeed());
+                    logger.trace("id [{}] completed on node for speed [{}]", request.getId(), request.getSpeed());
                 }
                 try {
                     channel.sendResponse(response);

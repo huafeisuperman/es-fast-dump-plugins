@@ -48,7 +48,7 @@ import static com.youzan.fast.dump.plugins.FastReindexPlugin.FAST_REINDEX_THREAD
  */
 public class TransportNodeFastReindexAction extends TransportAction<FastReindexShardRequest, FastReindexShardResponse> {
 
-    public static final String ACTION_NAME = FastReindexAction.NAME + "[s]";
+    public static final String ACTION_NAME = FastReindexAction.NAME + "[n]";
 
     private TransportService transportService;
 
@@ -65,30 +65,28 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
         super(ACTION_NAME, actionFilters, transportService.getTaskManager());
         this.transportService = transportService;
         this.client = client;
-        transportService.registerRequestHandler(actionName, FAST_REINDEX_THREAD_POOL_NAME, FastReindexShardRequest::new, new ShardOperationTransportHandler());
+        transportService.registerRequestHandler(actionName, FAST_REINDEX_THREAD_POOL_NAME, FastReindexShardRequest::new, new NodeOperationTransportHandler());
         this.clusterService = clusterService;
     }
 
 
     @Override
     protected void doExecute(Task task, FastReindexShardRequest request, ActionListener<FastReindexShardResponse> listener) {
-        new ShardReroutePhase((FastReindexTask) task, request, listener).run();
+        new NodeReroutePhase((FastReindexTask) task, request, listener).run();
     }
 
 
-    final class ShardReroutePhase extends AbstractRunnable {
+    final class NodeReroutePhase extends AbstractRunnable {
         private final ActionListener<FastReindexShardResponse> listener;
         private final FastReindexShardRequest request;
-        private final FastReindexTask task;
         private final AtomicBoolean finished = new AtomicBoolean();
 
-        ShardReroutePhase(FastReindexTask task, FastReindexShardRequest request, ActionListener<FastReindexShardResponse> listener) {
+        NodeReroutePhase(FastReindexTask task, FastReindexShardRequest request, ActionListener<FastReindexShardResponse> listener) {
             this.request = request;
             if (task != null) {
                 this.request.setParentTask(clusterService.localNode().getId(), task.getId());
             }
             this.listener = listener;
-            this.task = task;
         }
 
         @Override
@@ -176,17 +174,17 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
     }
 
 
-    class ShardOperationTransportHandler implements TransportRequestHandler<FastReindexShardRequest> {
+    class NodeOperationTransportHandler implements TransportRequestHandler<FastReindexShardRequest> {
 
 
         @Override
         public void messageReceived(FastReindexShardRequest request, TransportChannel channel, Task task) throws Exception {
-            new AsyncShardAction(request, channel, (FastReindexTask) task).run();
+            new AsyncNodeAction(request, channel, (FastReindexTask) task).run();
         }
 
     }
 
-    private final class AsyncShardAction extends AbstractRunnable implements ActionListener<Releasable> {
+    private final class AsyncNodeAction extends AbstractRunnable implements ActionListener<Releasable> {
         private final FastReindexShardRequest request;
         /**
          * The task on the node with the shard.
@@ -196,7 +194,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
         private final TransportChannel channel;
 
 
-        AsyncShardAction(FastReindexShardRequest request, TransportChannel channel,
+        AsyncNodeAction(FastReindexShardRequest request, TransportChannel channel,
                          FastReindexTask task) {
             this.request = request;
             this.task = task;
@@ -227,11 +225,11 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 fileReader = getFileReader(fieldType);
                 fileReader.foreachFile(resolve);
                 response.setFileReadStatusList(fileReader.getFileReadStatusList());
-                ResponseListener rl = new TransportNodeFastReindexAction.AsyncShardAction.ResponseListener();
+                ResponseListener rl = new TransportNodeFastReindexAction.AsyncNodeAction.ResponseListener();
                 rl.onResponse(response);
             } catch (Exception e) {
                 Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller
-                TransportNodeFastReindexAction.AsyncShardAction.this.onFailure(e);
+                TransportNodeFastReindexAction.AsyncNodeAction.this.onFailure(e);
             } finally {
                 try {
                     TaskIdContext.remove(task.getParentTaskId().toString());
@@ -309,7 +307,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
             @Override
             public void onResponse(TransportResponse response) {
                 if (logger.isTraceEnabled()) {
-                    logger.trace("action [{}] completed on shard [{}] for request [{}]", request, request.getFile(),
+                    logger.trace("action [{}] completed on node [{}] for request [{}]", request, request.getFile(),
                             request);
                 }
                 try {
