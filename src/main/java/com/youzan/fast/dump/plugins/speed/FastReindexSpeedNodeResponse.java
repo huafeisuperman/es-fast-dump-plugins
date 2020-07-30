@@ -22,7 +22,7 @@ public class FastReindexSpeedNodeResponse extends ActionResponse implements ToXC
 
     private String message = "ok";
 
-    private int nodeSpeed;
+    private int nodeSpeed = 0;
 
     public FastReindexSpeedNodeResponse() {
     }
@@ -30,15 +30,15 @@ public class FastReindexSpeedNodeResponse extends ActionResponse implements ToXC
     public FastReindexSpeedNodeResponse(StreamInput input) throws IOException {
         super(input);
         isSuccess = input.readBoolean();
-        message = input.readString();
         nodeSpeed = input.readInt();
+        message = input.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(isSuccess);
-        out.writeString(message);
         out.writeInt(nodeSpeed);
+        out.writeString(message);
     }
 
     @Override

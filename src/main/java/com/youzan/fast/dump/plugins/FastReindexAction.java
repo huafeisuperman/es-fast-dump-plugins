@@ -10,7 +10,7 @@ import org.elasticsearch.action.ActionType;
  */
 public class FastReindexAction extends ActionType<FastReindexResponse> {
     public static final FastReindexAction INSTANCE = new FastReindexAction();
-    public static final String NAME = "indices:fast/index";
+    public static final String NAME = "indices:data/write/fast/index";
 
     public FastReindexAction() {
         super(NAME, FastReindexResponse::new);

@@ -3,6 +3,8 @@ package com.youzan.fast.dump.plugins;
 import lombok.Data;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.tasks.Task;
@@ -20,7 +22,7 @@ import java.util.Map;
  * @date: 2020.03.27
  */
 @Data
-public class FastReindexShardRequest extends ActionRequest {
+public class FastReindexShardRequest extends ActionRequest  implements IndicesRequest.Replaceable {
 
     private String nodeId;
 
@@ -96,5 +98,20 @@ public class FastReindexShardRequest extends ActionRequest {
         out.writeOptionalWriteable(fastReindexRequest.getSourceInfo());
         out.writeOptionalWriteable(fastReindexRequest.getRemoteInfo());
         out.writeOptionalWriteable(fastReindexRequest.getRuleInfo());
+    }
+
+    @Override
+    public IndicesRequest indices(String... indices) {
+        return this;
+    }
+
+    @Override
+    public String[] indices() {
+        return new String[0];
+    }
+
+    @Override
+    public IndicesOptions indicesOptions() {
+        return IndicesOptions.strictExpandOpenAndForbidClosedIgnoreThrottled();
     }
 }

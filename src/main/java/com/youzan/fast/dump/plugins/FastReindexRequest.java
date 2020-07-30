@@ -5,6 +5,8 @@ import com.youzan.fast.dump.util.QueryParserHelper;
 import lombok.Data;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -22,7 +24,7 @@ import java.util.Map;
  * @date: 2020.03.25
  */
 @Data
-public class FastReindexRequest extends ActionRequest {
+public class FastReindexRequest extends ActionRequest implements IndicesRequest.Replaceable {
 
     public FastReindexRequest() {
 
@@ -89,6 +91,21 @@ public class FastReindexRequest extends ActionRequest {
 
     public void checkQuery() {
         QueryParserHelper.parser(JSON.parseObject(query));
+    }
+
+    @Override
+    public IndicesRequest indices(String... indices) {
+        return this;
+    }
+
+    @Override
+    public String[] indices() {
+        return new String[0];
+    }
+
+    @Override
+    public IndicesOptions indicesOptions() {
+        return IndicesOptions.strictExpandOpenAndForbidClosedIgnoreThrottled();
     }
 
     @Data

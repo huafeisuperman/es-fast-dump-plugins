@@ -1,7 +1,6 @@
 package com.youzan.fast.dump.plugins.speed;
 
 import com.youzan.fast.dump.plugins.TaskIdContext;
-import com.youzan.fast.dump.resolver.DataResolve;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -79,7 +78,7 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
 
                 @Override
                 public FastReindexSpeedNodeResponse read(StreamInput in) throws IOException {
-                    return new FastReindexSpeedNodeResponse();
+                    return new FastReindexSpeedNodeResponse(in);
                 }
 
                 @Override
@@ -90,10 +89,6 @@ public class TransportNodeFastReindexSpeedAction extends TransportAction<FastRei
                 @Override
                 public void handleResponse(FastReindexSpeedNodeResponse response) {
                     finishOnSuccess(response);
-                }
-
-                protected FastReindexSpeedNodeResponse newResponseInstance() {
-                    return new FastReindexSpeedNodeResponse();
                 }
 
                 @Override

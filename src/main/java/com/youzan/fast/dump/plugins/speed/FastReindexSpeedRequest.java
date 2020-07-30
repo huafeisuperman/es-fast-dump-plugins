@@ -3,6 +3,8 @@ package com.youzan.fast.dump.plugins.speed;
 import lombok.Data;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -15,7 +17,7 @@ import java.io.IOException;
  * @date: 2020.07.24
  */
 @Data
-public class FastReindexSpeedRequest extends ActionRequest {
+public class FastReindexSpeedRequest extends ActionRequest implements IndicesRequest.Replaceable {
 
     private String id;
 
@@ -51,5 +53,20 @@ public class FastReindexSpeedRequest extends ActionRequest {
             return exception;
         }
         return null;
+    }
+
+    @Override
+    public IndicesRequest indices(String... indices) {
+        return this;
+    }
+
+    @Override
+    public String[] indices() {
+        return new String[0];
+    }
+
+    @Override
+    public IndicesOptions indicesOptions() {
+        return IndicesOptions.strictExpandOpenAndForbidClosedIgnoreThrottled();
     }
 }

@@ -3,7 +3,6 @@ package com.youzan.fast.dump.plugins.speed;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.tasks.Task;
@@ -21,23 +20,18 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class TransportFastReindexSpeedAction extends HandledTransportAction<FastReindexSpeedRequest, FastReindexSpeedResponse> {
 
-    private Client client;
     private ClusterService clusterService;
     private TransportNodeFastReindexSpeedAction transportNodeFastReindexSpeedAction;
-    private TransportService transportService;
 
     @Inject
     public TransportFastReindexSpeedAction(ActionFilters actionFilters,
-                                           Client client,
                                            TransportService transportService,
                                            TransportNodeFastReindexSpeedAction transportNodeFastReindexSpeedAction,
                                            ClusterService clusterService) {
 
         super(FastReindexSpeedAction.NAME, transportService, actionFilters, FastReindexSpeedRequest::new);
-        this.client = client;
         this.clusterService = clusterService;
         this.transportNodeFastReindexSpeedAction = transportNodeFastReindexSpeedAction;
-        this.transportService = transportService;
     }
 
     @Override

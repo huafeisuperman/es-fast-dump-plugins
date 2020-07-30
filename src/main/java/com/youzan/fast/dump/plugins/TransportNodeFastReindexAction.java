@@ -108,7 +108,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
 
                 @Override
                 public FastReindexShardResponse read(StreamInput in) throws IOException {
-                    return new FastReindexShardResponse();
+                    return new FastReindexShardResponse(in);
                 }
 
                 @Override
@@ -119,10 +119,6 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 @Override
                 public void handleResponse(FastReindexShardResponse response) {
                     finishOnSuccess(response);
-                }
-
-                protected FastReindexShardResponse newResponseInstance() {
-                    return new FastReindexShardResponse();
                 }
 
                 @Override
