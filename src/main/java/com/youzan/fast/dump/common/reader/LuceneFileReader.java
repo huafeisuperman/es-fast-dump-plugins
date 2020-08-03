@@ -72,21 +72,19 @@ public class LuceneFileReader extends AbstractFileReader {
             FixedBitSet bitSet = null;
             boolean hasDoc = true;
             if (null != luceneQuery) {
+                bitSet = new FixedBitSet(reader.maxDoc());
+                CountCollector result = new CountCollector(bitSet);
                 IndexSearcher searcher = new IndexSearcher(reader);
-                TopDocs topDocs = searcher.search(luceneQuery,
-                        Integer.MAX_VALUE);
-                if (topDocs.totalHits.value > 0) {
-                    bitSet = new FixedBitSet(reader.maxDoc());
-                } else {
+                searcher.search(luceneQuery, result);
+                LOGGER.info(result.getTotalHits());
+                if (result.getTotalHits() == 0) {
                     hasDoc = false;
                     LOGGER.info("not found result:" + query);
                 }
-                for (int i = 0; i < topDocs.scoreDocs.length; i++) {
-                    bitSet.set(topDocs.scoreDocs[i].doc);
-                }
+                fileReadStatus.setTotalCount(result.getTotalHits());
+            } else {
+                fileReadStatus.setTotalCount(reader.numDocs());
             }
-
-            fileReadStatus.setTotalCount(reader.maxDoc());
 
             if (hasDoc) {
                 List<LeafReaderContext> readList = reader.getContext().leaves();
