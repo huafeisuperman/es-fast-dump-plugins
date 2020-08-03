@@ -10,12 +10,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.tasks.Task;
+import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.transport.TransportService;
 
 import java.security.AccessController;
@@ -75,7 +78,7 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
             if (nodeIdFile.size() > 0) {
                 int nodeCount = nodeIdFile.keySet().size();
                 int perNodeSpeed = request.getSpeedLimit() / nodeCount;
-                if (perNodeSpeed <= 0 ) {
+                if (perNodeSpeed <= 0) {
                     perNodeSpeed = 10;
                 }
                 request.setPerNodeSpeedLimit(perNodeSpeed);
@@ -103,6 +106,15 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
 
                         @Override
                         public void onFailure(Exception e) {
+                            Throwable p = e.getCause();
+                            if (p instanceof EsRejectedExecutionException) {
+                                try {
+                                    client.admin().cluster().cancelTasks(new CancelTasksRequest().setTaskId(new TaskId(clusterService.localNode().getId(), task.getId()))).get();
+                                    logger.info("cancel task[{}:{}]", clusterService.localNode().getId(), task.getId());
+                                } catch (Exception ex) {
+                                    logger.error("cancel task error:" + task.getId(), ex);
+                                }
+                            }
                             logger.error("deal error", e);
                             // create failures for all relevant requests
                             fastReindexResponse.getStatus().put(key.toString(), new FastReindexResponse.ResponseStatus(false, e.toString()));
