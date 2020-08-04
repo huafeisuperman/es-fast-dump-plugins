@@ -93,7 +93,7 @@ public class LuceneFileReader extends AbstractFileReader {
                 for (int i = 0; i < readList.size(); i++) {
                     starts[i] = maxDoc;
                     IndexReader r = readList.get(i).reader();
-                    maxDoc += (long) r.maxDoc();
+                    maxDoc += r.maxDoc();
                 }
                 starts[readList.size()] = Math.toIntExact(maxDoc);
                 int intervalSize = maxDoc / OneFileThreadNum;

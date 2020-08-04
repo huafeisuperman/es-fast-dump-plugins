@@ -137,7 +137,7 @@ public class QueryParserHelper {
 
     private static Query castRangeToQueryByType(String type, String key, Object lowValue, Object highValue) {
         if (type == null) {
-            return new TermRangeQuery(key, new BytesRef(lowValue.toString().getBytes()), new BytesRef(lowValue.toString().getBytes()), true, true);
+            return new TermRangeQuery(key, new BytesRef(lowValue.toString().getBytes()), new BytesRef(highValue.toString().getBytes()), true, true);
         }
         Query query;
         switch (type) {
@@ -151,7 +151,7 @@ public class QueryParserHelper {
                 query = LongPoint.newRangeQuery(key, Long.parseLong(lowValue.toString()), Long.parseLong(highValue.toString()));
                 break;
             default:
-                query = new TermRangeQuery(key, new BytesRef(lowValue.toString().getBytes()), new BytesRef(lowValue.toString().getBytes()), true, true);
+                query = new TermRangeQuery(key, new BytesRef(lowValue.toString().getBytes()), new BytesRef(highValue.toString().getBytes()), true, true);
 
         }
         return query;
