@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.youzan.fast.dump.common.IndexModeEnum;
 import com.youzan.fast.dump.common.IndexTypeEnum;
+import com.youzan.fast.dump.common.ShardOptionEnum;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
@@ -33,6 +34,8 @@ public class FastReindexRestHandler extends BaseRestHandler {
     private static final String RULES = "rules";
     private static final String SOURCE_INDEX = "source_index";
     private static final String MODE = "mode";
+    private static final String SHARD_OPTION = "shard_option";
+    private static final String SHARD_NUMBER = "shard_number";
     private static final String TARGET_INDEX = "target_index";
     private static final String IP = "ip";
     private static final String PORT = "port";
@@ -82,6 +85,8 @@ public class FastReindexRestHandler extends BaseRestHandler {
 
         fastReindexRequest.setSourceIndex(source.getString(SOURCE_INDEX));
         fastReindexRequest.setMode(source.getOrDefault(MODE, IndexModeEnum.UPDATE.getMode()).toString());
+        fastReindexRequest.setShardOption(source.getOrDefault(SHARD_OPTION, ShardOptionEnum.DEFAULT.getShardOption()).toString());
+        fastReindexRequest.setShardNumber(source.getString(SHARD_NUMBER));
         fastReindexRequest.setBatchSize(Integer.parseInt(source.getOrDefault(BATCH_SIZE, DEFAULT_BATCH_SIZE).toString()));
         fastReindexRequest.setThreadNum(Integer.parseInt(source.getOrDefault(THREAD_NUM, DEFAULT_THREAD_NUM).toString()));
         fastReindexRequest.setSpeedLimit(Integer.parseInt(source.getOrDefault(SPEED_LIMIT, DEFAULT_SPEED_LIMIT).toString()));

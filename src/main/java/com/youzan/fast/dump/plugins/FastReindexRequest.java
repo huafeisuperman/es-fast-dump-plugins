@@ -63,6 +63,10 @@ public class FastReindexRequest extends ActionRequest implements IndicesRequest.
 
     protected String targetResolver;
 
+    private String shardOption;
+
+    private String shardNumber;
+
     protected int perNodeSpeedLimit = 50000;
 
     protected int speedLimit = 100000;

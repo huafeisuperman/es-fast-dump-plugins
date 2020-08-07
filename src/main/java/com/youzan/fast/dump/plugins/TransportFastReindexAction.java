@@ -61,7 +61,7 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
             FileResource fileResource;
             switch (ResolveTypeEnum.findResolveTypeEnum(request.getSourceResolver().toUpperCase())) {
                 case ES:
-                    fileResource = new ESFileResource(client);
+                    fileResource = new ESFileResource(client, request.getShardOption(), request.getShardNumber());
                     break;
                 case HIVE:
                     List<String> nodeIds = new ArrayList<>();

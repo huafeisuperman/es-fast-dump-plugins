@@ -40,9 +40,9 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
 
     public static final String FAST_REINDEX_THREAD_POOL_NAME = NAME;
 
-    public static final int FAST_REINDEX_THREAD_POOL_SIZE = 4;
+    public static final int FAST_REINDEX_THREAD_POOL_SIZE = 1;
 
-    public static final int FAST_REINDEX_THREAD_POOL_QUEUE_SIZE = 10;
+    public static final int FAST_REINDEX_THREAD_POOL_QUEUE_SIZE = 1;
 
     public static final Setting<Integer> SIZE = Setting.intSetting(FAST_REINDEX_SIZE_KEY, FAST_REINDEX_THREAD_POOL_SIZE, Setting.Property.NodeScope);
 

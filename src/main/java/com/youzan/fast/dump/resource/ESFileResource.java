@@ -1,8 +1,10 @@
 package com.youzan.fast.dump.resource;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Sets;
 import com.youzan.fast.dump.client.ESTransportClient;
 import com.youzan.fast.dump.common.IndexTypeEnum;
+import com.youzan.fast.dump.common.ShardOptionEnum;
 import com.youzan.fast.dump.plugins.FastReindexRequest;
 import lombok.Data;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodeResponse;
@@ -26,8 +28,16 @@ public class ESFileResource implements FileResource {
 
     private Client client;
 
-    public ESFileResource(Client client) {
+    private ShardOptionEnum shardOption;
+
+    private Set<String> shardNumber;
+
+    public ESFileResource(Client client, String shardOption, String shardNumber) {
         this.client = client;
+        this.shardOption = ShardOptionEnum.findShardOption(shardOption);
+        if (null != shardNumber) {
+            this.shardNumber = Sets.newHashSet(shardNumber.split(","));
+        }
     }
 
     /**
@@ -63,6 +73,20 @@ public class ESFileResource implements FileResource {
                 ShardRouting shardRouting = shardStats.getShardRouting();
                 if (indexRelation.containsKey(shardRouting.getIndexName())) {
                     primaryShard = shardRouting.primary() ? primaryShard + 1 : primaryShard;
+
+                    if (null != shardNumber && !shardNumber.contains(String.valueOf(shardRouting.getId()))) {
+                        primaryShard = shardRouting.primary() ? primaryShard - 1 : primaryShard;
+                        continue;
+                    }
+
+                    if (shardOption == ShardOptionEnum.PRIMARY && !shardRouting.primary()) {
+                        continue;
+                    }
+
+                    if (shardOption == ShardOptionEnum.REPLICA && shardRouting.primary()) {
+                        continue;
+                    }
+
                     String path = shardStats.getDataPath() + "/indices/" + shardRouting.index().getUUID() + "/" + shardRouting.getId() + "/index";
                     Queue queue = multimap.get(stat.getNode().getId());
                     if (null == queue) {
@@ -80,6 +104,8 @@ public class ESFileResource implements FileResource {
                 }
             }
         }
+
+        assert getShardCount(multimap) >= primaryShard : "shard can not meet";
 
         //轮训获取对应节点的ip
         String nextIp = null;
@@ -102,6 +128,15 @@ public class ESFileResource implements FileResource {
             }
         }
         return resultMap;
+    }
+
+    private int getShardCount(Map<String, Queue<String>> multimap) {
+        int totalShard = 0;
+
+        for (Queue<String> value : multimap.values()) {
+            totalShard += value.size();
+        }
+        return totalShard;
     }
 
     /**
@@ -181,6 +216,7 @@ public class ESFileResource implements FileResource {
         }
 
     }
+
 
     @Data
     class IndexAliases {

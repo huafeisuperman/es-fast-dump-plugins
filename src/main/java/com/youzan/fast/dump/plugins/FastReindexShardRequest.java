@@ -39,6 +39,8 @@ public class FastReindexShardRequest extends ActionRequest  implements IndicesRe
         file = Arrays.asList(in.readStringArray());
         totalNodeSize = in.readInt();
         fastReindexRequest.setMode(in.readString());
+        fastReindexRequest.setShardOption(in.readString());
+        fastReindexRequest.setShardNumber(in.readOptionalString());
         fastReindexRequest.setSourceIndex(in.readString());
         fastReindexRequest.setSourceResolver(in.readString());
         fastReindexRequest.setTargetIndex(in.readString());
@@ -80,6 +82,8 @@ public class FastReindexShardRequest extends ActionRequest  implements IndicesRe
         out.writeStringArray(file.toArray(new String[]{}));
         out.writeInt(totalNodeSize);
         out.writeString(fastReindexRequest.getMode());
+        out.writeString(fastReindexRequest.getShardOption());
+        out.writeOptionalString(fastReindexRequest.getShardNumber());
         out.writeString(fastReindexRequest.getSourceIndex());
         out.writeString(fastReindexRequest.getSourceResolver());
         out.writeString(fastReindexRequest.getTargetIndex());
