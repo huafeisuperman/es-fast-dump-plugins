@@ -1,6 +1,5 @@
 package com.youzan.fast.dump.plugins;
 
-import com.youzan.fast.dump.client.HdfsConfClient;
 import com.youzan.fast.dump.common.IndexModeEnum;
 import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.common.reader.FileReader;
@@ -8,9 +7,7 @@ import com.youzan.fast.dump.common.reader.LuceneFileReader;
 import com.youzan.fast.dump.common.reader.OrcFileReader;
 import com.youzan.fast.dump.resolver.DataResolve;
 import com.youzan.fast.dump.resolver.DataResolveFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import com.youzan.fast.dump.resolver.ScanDataResolve;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
@@ -30,14 +27,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.youzan.fast.dump.common.ResolveTypeEnum.HIVE;
 import static com.youzan.fast.dump.plugins.FastReindexPlugin.FAST_REINDEX_THREAD_POOL_NAME;
 
 /**
@@ -195,7 +189,7 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
 
 
         AsyncNodeAction(FastReindexShardRequest request, TransportChannel channel,
-                         FastReindexTask task) {
+                        FastReindexTask task) {
             this.request = request;
             this.task = task;
             this.channel = channel;
@@ -220,7 +214,8 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 FastReindexShardResponse response = new FastReindexShardResponse();
                 response.setNodeId(request.getNodeId());
                 resolve = DataResolveFactory.getDataResolve(request, client);
-                TaskIdContext.put(task.getParentTaskId().toString(), new TaskIdContext.ResolveSpeed(request.getTotalNodeSize(), resolve));
+                TaskIdContext.put(task.getParentTaskId().toString(), new TaskIdContext.ResolveSpeed(request.getTotalNodeSize(),
+                        resolve, System.currentTimeMillis(), task));
                 FileReader fileReader;
                 fileReader = getFileReader(fieldType);
                 fileReader.foreachFile(resolve);
@@ -232,9 +227,11 @@ public class TransportNodeFastReindexAction extends TransportAction<FastReindexS
                 TransportNodeFastReindexAction.AsyncNodeAction.this.onFailure(e);
             } finally {
                 try {
-                    TaskIdContext.remove(task.getParentTaskId().toString());
                     if (null != resolve) {
                         resolve.close();
+                    }
+                    if (!(resolve instanceof ScanDataResolve)) {
+                        TaskIdContext.remove(task.getParentTaskId().toString());
                     }
                 } catch (Exception e) {
                     logger.error("close client error", e);

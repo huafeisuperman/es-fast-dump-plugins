@@ -1,5 +1,8 @@
 package com.youzan.fast.dump.plugins;
 
+import com.youzan.fast.dump.plugins.scan.FastReindexScanAction;
+import com.youzan.fast.dump.plugins.scan.FastReindexScanRestHandler;
+import com.youzan.fast.dump.plugins.scan.TransportFastReindexScanAction;
 import com.youzan.fast.dump.plugins.speed.FastReindexSpeedAction;
 import com.youzan.fast.dump.plugins.speed.FastReindexSpeedRestHandler;
 import com.youzan.fast.dump.plugins.speed.TransportFastReindexSpeedAction;
@@ -52,7 +55,8 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
 
         return Arrays.asList(new ActionHandler(FastReindexAction.INSTANCE, TransportFastReindexAction.class),
-                new ActionHandler(FastReindexSpeedAction.INSTANCE, TransportFastReindexSpeedAction.class));
+                new ActionHandler(FastReindexSpeedAction.INSTANCE, TransportFastReindexSpeedAction.class),
+                new ActionHandler(FastReindexScanAction.INSTANCE, TransportFastReindexScanAction.class));
     }
 
     @Override
@@ -61,7 +65,8 @@ public class FastReindexPlugin extends Plugin implements ActionPlugin {
                                              IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
         return Arrays.asList(
                 new FastReindexRestHandler(restController),
-                new FastReindexSpeedRestHandler(restController));
+                new FastReindexSpeedRestHandler(restController),
+                new FastReindexScanRestHandler(restController));
     }
 
     @Override
