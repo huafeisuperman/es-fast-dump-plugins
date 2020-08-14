@@ -27,6 +27,7 @@ public class FastReindexScanRestHandler extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         FastReindexScanRequest reindexScanRequest = new FastReindexScanRequest();
         reindexScanRequest.setId(request.param("id"));
+        reindexScanRequest.setScanSize(request.paramAsInt("size", 200));
         return channel -> client.execute(FastReindexScanAction.INSTANCE, reindexScanRequest, new RestBuilderListener<FastReindexScanResponse>(channel) {
             @Override
             public RestResponse buildResponse(FastReindexScanResponse fastReindexScanResponse, XContentBuilder builder) throws Exception {

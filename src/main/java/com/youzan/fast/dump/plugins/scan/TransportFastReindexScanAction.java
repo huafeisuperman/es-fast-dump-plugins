@@ -46,6 +46,7 @@ public class TransportFastReindexScanAction extends HandledTransportAction<FastR
             FastReindexScanRequest scanRequest = new FastReindexScanRequest();
             scanRequest.setId(request.getId());
             scanRequest.setNodeId(key);
+            scanRequest.setScanSize(request.getScanSize());
             transportNodeFastReindexScanAction.execute(task, scanRequest, new ActionListener<FastReindexScanNodeResponse>() {
                 @Override
                 public void onResponse(FastReindexScanNodeResponse fastReindexScanNodeResponse) {

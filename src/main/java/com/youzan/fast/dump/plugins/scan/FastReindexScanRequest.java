@@ -23,6 +23,8 @@ public class FastReindexScanRequest extends ActionRequest implements IndicesRequ
 
     private String nodeId;
 
+    private int scanSize;
+
     public FastReindexScanRequest() {
 
     }
@@ -31,6 +33,7 @@ public class FastReindexScanRequest extends ActionRequest implements IndicesRequ
         super(input);
         id = input.readString();
         nodeId = input.readString();
+        scanSize = input.readInt();
 
     }
 
@@ -39,10 +42,16 @@ public class FastReindexScanRequest extends ActionRequest implements IndicesRequ
         super.writeTo(out);
         out.writeString(id);
         out.writeString(nodeId);
+        out.writeInt(scanSize);
     }
 
     @Override
     public ActionRequestValidationException validate() {
+        if (scanSize <= 0) {
+            ActionRequestValidationException exception = new ActionRequestValidationException();
+            exception.addValidationError("scan size can not lte 0");
+            return exception;
+        }
         return null;
     }
 

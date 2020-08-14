@@ -173,7 +173,8 @@ public class TransportNodeFastReindexScanAction extends TransportAction<FastRein
                 TaskIdContext.ResolveSpeed dataResolve = TaskIdContext.get(request.getId());
                 response.setSuccess(true);
                 if (dataResolve != null) {
-                    response.getRecords().addAll(((ScanDataResolve) dataResolve.getDataResolve()).getRecords());
+                    int preNodeScan = request.getScanSize() / dataResolve.getTotalNodeSize();
+                    response.getRecords().addAll(((ScanDataResolve) dataResolve.getDataResolve()).getRecords(preNodeScan == 0 ? 200 : preNodeScan));
                     dataResolve.setCurrentTime(System.currentTimeMillis());
                 } else {
                     response.setMessage("scan has no message");

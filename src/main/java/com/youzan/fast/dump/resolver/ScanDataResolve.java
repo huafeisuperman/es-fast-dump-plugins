@@ -39,12 +39,12 @@ public class ScanDataResolve extends BaseDataResolve {
         finish = true;
     }
 
-    public List<String> getRecords() {
+    public List<String> getRecords(int scanSize) {
         List<String> js = new ArrayList<>();
         AccessController.doPrivileged(
                 (PrivilegedAction<Void>) () -> {
                     try {
-                        for (int i = 0; i < 500; i++) {
+                        for (int i = 0; i < scanSize; i++) {
                             if (finish && messagesQueue.isEmpty()) break;
                             JSONObject record = messagesQueue.poll(100, TimeUnit.MILLISECONDS);
                             while (record == null && finish == false) {
