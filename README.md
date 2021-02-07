@@ -390,14 +390,14 @@ POST  /fast/index?wait_for_completion=true
 ```
 
 ## 插件配置
-单独给重建用的线程池大小：thread_pool.fast_reindex.size  默认是4
-单独给重建用的线程池队列长度：thread_pool.fast_reindex.queue_size  默认是10
+单独给重建用的线程池大小：thread_pool.fast_reindex.size  默认是4<br/>
+单独给重建用的线程池队列长度：thread_pool.fast_reindex.queue_size  默认是10<br/>
 
 ## 功能扩展
-1.delete和update的功能
-2.对于失败的资源，可以指定失败资源进行处理等
+1.delete和update的功能<br/> 
+2.对于失败的资源，可以指定失败资源进行处理等<br/> 
 
 ## 风险点
-1.一些未知的异常，导致es问题，oom堆栈溢出等
-2.线程池大小设置太大，并发任务多的话，会有性能影响
-3.队列长度也不能太长，不然可能占用内存
+1.一些未知的异常，导致es问题，oom堆栈溢出等<br/>
+2.线程池大小设置太大，并发任务多的话，会有性能影响<br/>
+3.队列长度也不能太长，不然可能占用内存<br/>
