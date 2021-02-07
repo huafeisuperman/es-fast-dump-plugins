@@ -1,11 +1,11 @@
-#重建索引插件
+# 重建索引插件
 
-##功能
+## 功能
 !(https://doc.qima-inc.com/download/attachments/286348156/image2020-7-28_13-3-16.png?version=1&modificationDate=1595912601000&api=v2)
 
-##API
+## API
 
-###1.提交一个重建请求：
+### 1.提交一个重建请求：
 POST /fast/index   
 请求：请求body如下      
 返回：等结束再返回， 默认是等待的，返回值
@@ -187,7 +187,7 @@ POST  /fast/index?wait_for_completion=true
 }
 ```
 
-###2.更改速度：PUT /fast/index/speed/{id}
+### 2.更改速度：PUT /fast/index/speed/{id}
 请求：请求body无
 返回：
 ```
@@ -205,7 +205,7 @@ POST  /fast/index?wait_for_completion=true
 }
 ```
 
-###3.查询任务状态：GET _tasks?parent_task_id={task_id}&detailed
+### 3.查询任务状态：GET _tasks?parent_task_id={task_id}&detailed
 请求：请求body无
 返回：
 ```
@@ -265,7 +265,7 @@ POST  /fast/index?wait_for_completion=true
 }
 ```
 
-###4.查看结束任务状态：GET  tasks/{task_id}
+### 4.查看结束任务状态：GET  tasks/{task_id}
 请求：请求body无
 返回：
 ```
@@ -389,15 +389,15 @@ POST  /fast/index?wait_for_completion=true
 }
 ```
 
-##插件配置
+## 插件配置
 单独给重建用的线程池大小：thread_pool.fast_reindex.size  默认是4
 单独给重建用的线程池队列长度：thread_pool.fast_reindex.queue_size  默认是10
 
-##功能扩展
+## 功能扩展
 1.delete和update的功能
 2.对于失败的资源，可以指定失败资源进行处理等
 
-##风险点
+## 风险点
 1.一些未知的异常，导致es问题，oom堆栈溢出等
 2.线程池大小设置太大，并发任务多的话，会有性能影响
 3.队列长度也不能太长，不然可能占用内存
