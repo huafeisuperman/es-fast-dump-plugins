@@ -1,7 +1,7 @@
 # 重建索引插件
 
 ## 功能
-!(https://doc.qima-inc.com/download/attachments/286348156/image2020-7-28_13-3-16.png?version=1&modificationDate=1595912601000&api=v2)
+![功能](https://doc.qima-inc.com/download/attachments/286348156/image2020-7-28_13-3-16.png?version=1&modificationDate=1595912601000&api=v2)
 
 ## API
 
