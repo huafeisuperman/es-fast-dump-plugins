@@ -1,7 +1,7 @@
 # 重建索引插件
 
 ## 功能
-![功能](https://doc.qima-inc.com/download/attachments/286348156/image2020-7-28_13-3-16.png?version=1&modificationDate=1595912601000&api=v2)
+![功能](https://github.com/huafeisuperman/es-fast-dump-plugins/blob/master/src/main/resources/%E6%8F%92%E4%BB%B6%E5%8A%9F%E8%83%BD%E5%9B%BE.png)
 
 ## API
 
