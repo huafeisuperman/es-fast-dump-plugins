@@ -1,20 +1,22 @@
 package com.youzan.fast.dump.resource;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Sets;
 import com.youzan.fast.dump.client.ESTransportClient;
 import com.youzan.fast.dump.common.IndexTypeEnum;
+import com.youzan.fast.dump.common.ShardOptionEnum;
+import com.youzan.fast.dump.plugins.FastReindexRequest;
+import lombok.Data;
 import org.elasticsearch.action.admin.cluster.stats.ClusterStatsNodeResponse;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.ShardRouting;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Stream;
 
 /**
  * Description:
@@ -24,29 +26,43 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class ESFileResource implements FileResource {
 
+    private Client client;
+
+    private ShardOptionEnum shardOption;
+
+    private Set<String> shardNumber;
+
+    public ESFileResource(Client client, String shardOption, String shardNumber) {
+        this.client = client;
+        this.shardOption = ShardOptionEnum.findShardOption(shardOption);
+        if (null != shardNumber) {
+            this.shardNumber = Sets.newHashSet(shardNumber.split(","));
+        }
+    }
+
     /**
      * 采用主副对应寻找的方式，尽可能让每个节点分配的资源数一样
      *
-     * @param indices      索引数组
-     * @param sourceEsIp   es ip
-     * @param sourceEsPort es port
-     * @param sourceEsName es name
-     * @return 节点对应的资源数
-     * @throws Exception 获取资源数失败
+     * @param resources
+     * @param sourceInfo
+     * @param indexType
+     * @param targetResource
+     * @return
+     * @throws Exception
      */
     @Override
-    public ArrayListMultimap getSlaveFile(String indices[], Client client, String targetIndexType, String targetIndex) throws Exception {
+    public ArrayListMultimap getSlaveFile(String[] resources, FastReindexRequest.FastReindexRemoteInfo sourceInfo, String indexType, String targetResource, String type) throws Exception {
         ESTransportClient esClient = new ESTransportClient(client);
         List<ClusterStatsNodeResponse> response = esClient.getClient().
                 admin().cluster().prepareClusterStats().get().getNodes();
         Set<String> idSet = new HashSet<>();
         Map<String, Queue<String>> multimap = new LinkedHashMap<>();
 
-        //获取索引和type
-        Map<String, String> indexAndType = getIndexAndType(indices, esClient);
+        //获取索引
+        flushIndex(resources, esClient);
 
         //获取索引映射信息
-        Map<String, String> indexMapping = getIndexMapping(esClient, targetIndexType, targetIndex, indexAndType);
+        Map<String, String> indexRelation = getIndexRelation(esClient, indexType, targetResource, resources);
 
         ArrayListMultimap resultMap = ArrayListMultimap.create();
         int primaryShard = 0;
@@ -55,8 +71,22 @@ public class ESFileResource implements FileResource {
         for (ClusterStatsNodeResponse stat : response) {
             for (ShardStats shardStats : stat.shardsStats()) {
                 ShardRouting shardRouting = shardStats.getShardRouting();
-                if (indexAndType.containsKey(shardRouting.getIndexName())) {
+                if (indexRelation.containsKey(shardRouting.getIndexName())) {
                     primaryShard = shardRouting.primary() ? primaryShard + 1 : primaryShard;
+
+                    if (null != shardNumber && !shardNumber.contains(String.valueOf(shardRouting.getId()))) {
+                        primaryShard = shardRouting.primary() ? primaryShard - 1 : primaryShard;
+                        continue;
+                    }
+
+                    if (shardOption == ShardOptionEnum.PRIMARY && !shardRouting.primary()) {
+                        continue;
+                    }
+
+                    if (shardOption == ShardOptionEnum.REPLICA && shardRouting.primary()) {
+                        continue;
+                    }
+
                     String path = shardStats.getDataPath() + "/indices/" + shardRouting.index().getUUID() + "/" + shardRouting.getId() + "/index";
                     Queue queue = multimap.get(stat.getNode().getId());
                     if (null == queue) {
@@ -64,14 +94,18 @@ public class ESFileResource implements FileResource {
                         multimap.put(stat.getNode().getId(), queue);
                     }
 
-                    String tmpTargetIndex = indexMapping.containsKey(shardRouting.getIndexName()) ?
-                            indexMapping.get(shardRouting.getIndexName()) : shardRouting.getIndexName();
+                    if (null == indexRelation.get(shardRouting.getIndexName())) {
+                        throw new RuntimeException("index not found or source -> target not match");
+                    }
+
                     queue.add(shardRouting.index().getUUID() + ":" +
-                            shardRouting.getId() + "," + tmpTargetIndex + ":" +
-                            indexAndType.get(shardRouting.getIndexName()) + ":" + path + ":" + shardRouting.getIndexName());
+                            shardRouting.getId() + "," + indexRelation.get(shardRouting.getIndexName()) + ":" +
+                            (type == null ? "_doc" : type) + ":" + path + ":" + shardRouting.getIndexName());
                 }
             }
         }
+
+        assert getShardCount(multimap) >= primaryShard : "shard can not meet";
 
         //轮训获取对应节点的ip
         String nextIp = null;
@@ -96,39 +130,47 @@ public class ESFileResource implements FileResource {
         return resultMap;
     }
 
+    private int getShardCount(Map<String, Queue<String>> multimap) {
+        int totalShard = 0;
+
+        for (Queue<String> value : multimap.values()) {
+            totalShard += value.size();
+        }
+        return totalShard;
+    }
+
     /**
      * 获取源索引和目标索引的对应关系
      *
-     * @param targetIndexType 索引类型
-     * @param targetIndex     目标索引
-     * @param indexAndType    index和type的对应关系
-     * @return Map<String, String> key为source索引，value为目标索引
+     * @param esClient
+     * @param targetIndexType
+     * @param targetResource
+     * @param sourceResource
+     * @return
      * @throws Exception
      */
-    private Map<String, String> getIndexMapping(ESTransportClient esClient, String targetIndexType,
-                                                String targetIndex, Map<String, String> indexAndType) throws Exception {
-        Map<String, String> indexMapping = new HashMap<>();
+    private Map<String, String> getIndexRelation(ESTransportClient esClient, String targetIndexType,
+                                                 String targetResource, String[] sourceResource) throws Exception {
+        Map<String, String> indexRelation = new HashMap<>();
         switch (IndexTypeEnum.findIndexTypeEnum(targetIndexType)) {
             case ONE_TO_ONE:
-                String[] sourceToTargets = targetIndex.split(",");
+                String[] sourceToTargets = targetResource.split(",");
                 for (String sourceToTarget : sourceToTargets) {
                     String[] indexArray = sourceToTarget.split("->");
-                    indexMapping.put(getTrueIndex(esClient, indexArray[0]),
-                            getTrueIndex(esClient, indexArray[1]));
+                    putTrueIndex(esClient, indexArray[0], indexRelation, indexArray[1]);
                 }
                 break;
             case ALL_TO_ALL:
-                indexAndType.keySet().forEach(x -> indexMapping.put(x, x));
+                Stream.of(sourceResource).forEach(x -> putTrueIndex(esClient, x, indexRelation, null));
                 break;
             case CUSTOM:
             case ALL_TO_ONE:
-                String trueIndex = getTrueIndex(esClient, targetIndex);
-                indexAndType.keySet().forEach(x -> indexMapping.put(x, trueIndex));
+                Stream.of(sourceResource).forEach(x -> putTrueIndex(esClient, x, indexRelation, targetResource));
                 break;
             default:
                 throw new Exception("未知类型:" + targetIndexType);
         }
-        return indexMapping;
+        return indexRelation;
     }
 
     private String getNextIp(String id, Set<Map.Entry<String, Queue<String>>> entrySet) {
@@ -142,49 +184,44 @@ public class ESFileResource implements FileResource {
         return null;
     }
 
-    /**
-     * 根据别名获取index和type
-     *
-     * @param indices  索引数组
-     * @param esClient client
-     * @return Map<String, String>,key位index,value为type
-     * @throws Exception 获取索引失败
-     */
-    private Map<String, String> getIndexAndType(String[] indices, ESTransportClient esClient) throws Exception {
-        Map<String, String> indexAndType = new HashMap<>();
-        Set<String> indexSet = new HashSet<>();
-        for (String index : indices) {
-            indexSet.add(getTrueIndex(esClient, index));
-        }
 
+    private void flushIndex(String[] indices, ESTransportClient esClient) throws Exception {
         //索引刷新
         FlushResponse flushResponse = esClient.getClient().admin().indices().
-                prepareFlush(indexSet.toArray(new String[]{})).setForce(true).get();
+                prepareFlush(indices).setForce(true).get();
 
         if (0 < flushResponse.getFailedShards()) {
             throw new Exception("flush error, failed shard number:" + flushResponse.getFailedShards());
         }
-
-        //获取mapping
-        GetMappingsResponse mappingsResponse = esClient.getClient().admin().indices().
-                getMappings(new GetMappingsRequest().indices(indexSet.toArray(new String[]{}))).get();
-
-        for (ObjectCursor<String> key : mappingsResponse.getMappings().keys()) {
-            indexAndType.put(key.value, mappingsResponse.getMappings().get(key.value).keys().toArray()[0].toString());
-        }
-        return indexAndType;
     }
 
-    private String getTrueIndex(ESTransportClient esClient, String index) throws Exception {
-        String[] trueIndices = esClient.getClient().admin().indices().
-                getAliases(new GetAliasesRequest(index)).
-                get().getAliases().keys().toArray(String.class);
-        //如果是别名则加上别名对应索引，否则加上真实索引
-        //TODO 一个别名对应多个索引的情况暂时先不支持,只会返回第一个索引
-        if (trueIndices.length > 0) {
-            return trueIndices[0];
-        } else {
-            return index;
+    private void putTrueIndex(ESTransportClient esClient, String index, Map<String, String> indexRelation, String targetResource) {
+        try {
+            String[] trueIndices = esClient.getClient().admin().indices().
+                    getAliases(new GetAliasesRequest(index)).
+                    get().getAliases().keys().toArray(String.class);
+
+            if (trueIndices.length == 0) {
+                trueIndices = new String[]{index};
+            }
+
+
+            if (targetResource == null) {
+                Stream.of(trueIndices).forEach(x -> indexRelation.put(x, x));
+            } else {
+                Stream.of(trueIndices).forEach(x -> indexRelation.put(x, targetResource));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
+    }
+
+
+    @Data
+    class IndexAliases {
+        private String indexName;
+        private String aliases;
+        private String uuid;
     }
 }

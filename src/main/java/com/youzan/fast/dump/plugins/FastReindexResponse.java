@@ -5,6 +5,8 @@ import com.youzan.fast.dump.common.reader.FileReadStatus;
 import lombok.Builder;
 import lombok.Data;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -30,6 +32,9 @@ public class FastReindexResponse extends ActionResponse implements ToXContent {
 
     private long buildTime;
 
+
+    public FastReindexResponse(StreamInput in) {
+    }
 
     public FastReindexResponse() {
     }
@@ -99,12 +104,19 @@ public class FastReindexResponse extends ActionResponse implements ToXContent {
         return builder;
     }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+
+    }
+
     @Data
     @Builder
     public static class ResponseStatus {
         private boolean status;
         private String message;
     }
+
+
 
 
 }

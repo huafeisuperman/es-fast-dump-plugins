@@ -10,6 +10,7 @@ public enum ResolveTypeEnum {
 
     ES("ES"),
     HIVE("HIVE"),
+    SCAN("SCAN"),
     NOT_SUPPORT_RESOLVE("not support resolve");
 
     private String resolveType;

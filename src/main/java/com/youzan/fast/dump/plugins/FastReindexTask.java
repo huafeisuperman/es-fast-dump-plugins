@@ -14,6 +14,7 @@ import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -46,7 +47,7 @@ public class FastReindexTask extends CancellableTask implements BaseLogger {
     }
 
     public FastReindexTask(long id, String type, String action, String description, TaskId parentTaskId) {
-        super(id, type, action, description, parentTaskId);
+        super(id, type, action, description, parentTaskId, new HashMap<>());
     }
 
     @Override

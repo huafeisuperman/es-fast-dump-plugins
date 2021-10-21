@@ -1,7 +1,7 @@
 package com.youzan.fast.dump.resource;
 
 import com.google.common.collect.ArrayListMultimap;
-import org.elasticsearch.client.Client;
+import com.youzan.fast.dump.plugins.FastReindexRequest;
 
 /**
  * Description:
@@ -14,14 +14,13 @@ public interface FileResource {
     /**
      * 获取资源文件，以及每个节点的分配
      *
-     * @param resource
-     * @param client
-     * @param targetIndexType
-     * @param targetIndex
+     * @param resources
+     * @param sourceInfo
+     * @param indexType
+     * @param targetResource
      * @return
      * @throws Exception
      */
-    ArrayListMultimap getSlaveFile(String[] resource, Client client,
-                                   String targetIndexType, String targetIndex) throws Exception;
-
+    ArrayListMultimap getSlaveFile(String[] resources, FastReindexRequest.FastReindexRemoteInfo sourceInfo,
+                                   String indexType, String targetResource, String type) throws Exception;
 }

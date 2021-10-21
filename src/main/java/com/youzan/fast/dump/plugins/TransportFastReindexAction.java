@@ -1,21 +1,33 @@
 package com.youzan.fast.dump.plugins;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.youzan.fast.dump.client.HdfsConfClient;
+import com.youzan.fast.dump.common.ResolveTypeEnum;
 import com.youzan.fast.dump.resource.ESFileResource;
 import com.youzan.fast.dump.resource.FileResource;
+import com.youzan.fast.dump.resource.HiveFileResource;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.transport.TransportService;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.youzan.fast.dump.common.ResolveTypeEnum.HIVE;
 
 /**
  * Description:
@@ -27,39 +39,60 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
 
     private TransportNodeFastReindexAction transportNodeFastReindexAction;
     private Client client;
+    private ClusterService clusterService;
 
     @Inject
-    public TransportFastReindexAction(Settings settings,
-                                      ThreadPool threadPool,
-                                      ActionFilters actionFilters,
+    public TransportFastReindexAction(ActionFilters actionFilters,
                                       Client client,
-                                      IndexNameExpressionResolver indexNameExpressionResolver,
                                       TransportService transportService,
-                                      TransportNodeFastReindexAction transportNodeFastReindexAction) {
+                                      TransportNodeFastReindexAction transportNodeFastReindexAction,
+                                      ClusterService clusterService) {
 
-        super(settings, FastReindexAction.NAME, threadPool, transportService, actionFilters, indexNameExpressionResolver,
-                FastReindexRequest::new);
+        super(FastReindexAction.NAME, transportService, actionFilters, FastReindexRequest::new);
         this.client = client;
         this.transportNodeFastReindexAction = transportNodeFastReindexAction;
+        this.clusterService = clusterService;
     }
 
     @Override
     protected void doExecute(Task task, final FastReindexRequest request, ActionListener<FastReindexResponse> listener) {
         try {
             long startTime = System.currentTimeMillis();
+            FileResource fileResource;
+            switch (ResolveTypeEnum.findResolveTypeEnum(request.getSourceResolver().toUpperCase())) {
+                case ES:
+                    fileResource = new ESFileResource(client, request.getShardOption(), request.getShardNumber());
+                    break;
+                case HIVE:
+                    List<String> nodeIds = new ArrayList<>();
+                    clusterService.state().nodes().forEach(node -> nodeIds.add(node.getId()));
+                    fileResource = new HiveFileResource(nodeIds);
+                    break;
+                default:
+                    throw new RuntimeException("not find source resolver " + request.getSourceResolver());
+            }
 
-            FileResource fileResource = new ESFileResource();
-            ArrayListMultimap nodeIdFile = fileResource.getSlaveFile(request.getSourceIndex().split(","), client,
-                    request.getTargetIndexType(), request.getTargetIndex());
+            ArrayListMultimap nodeIdFile = fileResource.getSlaveFile(request.getSourceIndex().split(","), request.getSourceInfo(),
+                    request.getTargetIndexType(), request.getTargetIndex(), request.getTargetType());
 
             if (nodeIdFile.size() > 0) {
-                final AtomicInteger counter = new AtomicInteger(nodeIdFile.keySet().size());
+                int nodeCount = nodeIdFile.keySet().size();
+                int perNodeSpeed = request.getSpeedLimit() / nodeCount;
+                if (perNodeSpeed <= 0) {
+                    perNodeSpeed = 10;
+                }
+                request.setPerNodeSpeedLimit(perNodeSpeed);
+                final AtomicInteger counter = new AtomicInteger(nodeCount);
                 final FastReindexResponse fastReindexResponse = new FastReindexResponse();
+                initialResource(request);
                 nodeIdFile.keySet().forEach(key -> {
                     FastReindexShardRequest fastReindexShardRequest = new FastReindexShardRequest();
                     fastReindexShardRequest.setFastReindexRequest(request);
                     fastReindexShardRequest.setFile(nodeIdFile.get(key));
-                    fastReindexResponse.setTotalFile(fastReindexResponse.getTotalFile() + nodeIdFile.get(key).size());
+                    fastReindexShardRequest.setTotalNodeSize(nodeCount);
+                    synchronized (this) {
+                        fastReindexResponse.setTotalFile(fastReindexResponse.getTotalFile() + nodeIdFile.get(key).size());
+                    }
                     fastReindexShardRequest.setNodeId(key.toString());
                     request.setShouldStoreResult(true);
                     transportNodeFastReindexAction.execute(task, fastReindexShardRequest, new ActionListener<FastReindexShardResponse>() {
@@ -73,7 +106,16 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
 
                         @Override
                         public void onFailure(Exception e) {
-                            logger.error(e);
+                            Throwable p = e.getCause();
+                            if (p instanceof EsRejectedExecutionException) {
+                                try {
+                                    client.admin().cluster().cancelTasks(new CancelTasksRequest().setTaskId(new TaskId(clusterService.localNode().getId(), task.getId()))).get();
+                                    logger.info("cancel task[{}:{}]", clusterService.localNode().getId(), task.getId());
+                                } catch (Exception ex) {
+                                    logger.error("cancel task error:" + task.getId(), ex);
+                                }
+                            }
+                            logger.error("deal error", e);
                             // create failures for all relevant requests
                             fastReindexResponse.getStatus().put(key.toString(), new FastReindexResponse.ResponseStatus(false, e.toString()));
                             fastReindexResponse.getMap().put(key.toString(), new ArrayList<>());
@@ -88,6 +130,8 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
                         }
                     });
                 });
+            } else {
+                listener.onResponse(new FastReindexResponse());
             }
 
 
@@ -97,9 +141,23 @@ public class TransportFastReindexAction extends HandledTransportAction<FastReind
 
     }
 
-    @Override
-    protected void doExecute(FastReindexRequest request, ActionListener<FastReindexResponse> listener) {
-        throw new UnsupportedOperationException("task required");
+    private void initialResource(FastReindexRequest request) {
+        AccessController.doPrivileged(
+                (PrivilegedAction<Configuration>) () -> {
+                    try {
+                        if (request.getTargetResolver().toUpperCase().equals(HIVE.getResolveType())) {
+                            Configuration conf = new HdfsConfClient(request.getRemoteInfo()).getClient();
+                            FileSystem fs = FileSystem.get(conf);
+                            fs.delete(new Path(request.getTargetIndex()));
+                            fs.mkdirs(new Path(request.getTargetIndex()));
+                            fs.close();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                });
+
     }
 
 }

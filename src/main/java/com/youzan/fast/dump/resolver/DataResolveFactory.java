@@ -26,6 +26,8 @@ public class DataResolveFactory {
             case HIVE:
                 return new HiveDataResolve(request.getFastReindexRequest().getRemoteInfo(),
                         request.getFastReindexRequest().getPerNodeSpeedLimit());
+            case SCAN:
+                return new ScanDataResolve(request.getFastReindexRequest().getPerNodeSpeedLimit());
             default:
                 throw new Exception("not find dataResolve");
         }

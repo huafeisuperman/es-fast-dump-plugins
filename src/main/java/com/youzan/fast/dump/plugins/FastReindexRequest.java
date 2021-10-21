@@ -5,6 +5,8 @@ import com.youzan.fast.dump.util.QueryParserHelper;
 import lombok.Data;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -22,9 +24,14 @@ import java.util.Map;
  * @date: 2020.03.25
  */
 @Data
-public class FastReindexRequest extends ActionRequest {
+public class FastReindexRequest extends ActionRequest implements IndicesRequest.Replaceable {
 
     public FastReindexRequest() {
+
+    }
+
+    public FastReindexRequest(StreamInput input) throws IOException {
+        super(input);
 
     }
 
@@ -34,11 +41,21 @@ public class FastReindexRequest extends ActionRequest {
 
     protected String targetIndexType;
 
+    protected FastReindexRemoteInfo sourceInfo;
+
+    protected String sourceResolver;
+
     protected String targetIndex;
 
     protected String targetType;
 
     protected String query;
+
+    private String needFields;
+
+    private String primaryKey;
+
+    private String nestFields;
 
     protected FastReindexRemoteInfo remoteInfo;
 
@@ -46,7 +63,13 @@ public class FastReindexRequest extends ActionRequest {
 
     protected String targetResolver;
 
+    private String shardOption;
+
+    private String shardNumber;
+
     protected int perNodeSpeedLimit = 50000;
+
+    protected int speedLimit = 100000;
 
     private int batchSize = 1000;
 
@@ -66,12 +89,27 @@ public class FastReindexRequest extends ActionRequest {
     }
 
     @Override
-    public Task createTask(long id, String type, String action, TaskId parentTaskId) {
+    public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
         return new FastReindexTask(id, type, action, getDescription(), parentTaskId);
     }
 
     public void checkQuery() {
         QueryParserHelper.parser(JSON.parseObject(query));
+    }
+
+    @Override
+    public IndicesRequest indices(String... indices) {
+        return this;
+    }
+
+    @Override
+    public String[] indices() {
+        return new String[0];
+    }
+
+    @Override
+    public IndicesOptions indicesOptions() {
+        return IndicesOptions.strictExpandOpenAndForbidClosedIgnoreThrottled();
     }
 
     @Data
@@ -100,7 +138,7 @@ public class FastReindexRequest extends ActionRequest {
         public RuleInfo(StreamInput in) throws IOException {
             ruleName = in.readString();
             field = in.readString();
-            rules= in.readString();
+            rules = in.readString();
         }
     }
 
@@ -134,7 +172,7 @@ public class FastReindexRequest extends ActionRequest {
             ip = in.readString();
             clusterName = in.readOptionalString();
             port = in.readInt();
-            headers =  in.readMap();
+            headers = in.readMap();
             username = in.readOptionalString();
             password = in.readOptionalString();
             connectTimeout = in.readLong();

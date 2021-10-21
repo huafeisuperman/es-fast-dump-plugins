@@ -45,7 +45,7 @@ public class ESDataResolve extends BaseDataResolve {
             String id = record.get("_id").toString();
             String route = record.get("route") == null ? null : record.get("route").toString();
             ((Set) record.get("index")).forEach(index -> {
-                IndexRequestBuilder indexRequest = esClient.prepareIndex(index.toString(), sourceType, id).setSource(dataMap).setParent(route);
+                IndexRequestBuilder indexRequest = esClient.prepareIndex(index.toString(), sourceType, id).setSource(dataMap).setRouting(route);
                 //按照模式来区分不同的索引类型
                 if (mode == IndexModeEnum.CREATE) {
                     indexRequest.setCreate(true);
@@ -63,7 +63,7 @@ public class ESDataResolve extends BaseDataResolve {
             int retryTimes = 0;
             while (hasFailures(responses)) {
                 if (retryTimes < 2) {
-                    Thread.sleep(1000L);
+                    Thread.sleep(5000L);
                     responses = bulkRequest.get();
                     retryTimes++;
                 } else {
