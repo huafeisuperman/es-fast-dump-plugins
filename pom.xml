@@ -18,7 +18,7 @@
         <es.rest.client.version>7.6.2</es.rest.client.version>
         <groovy.version>2.4.6</groovy.version>
         <hadoop.hdfs.version>2.6.5</hadoop.hdfs.version>
-        <hadoop.common.version>2.6.5</hadoop.common.version>
+        <hadoop.common.version>3.2.3</hadoop.common.version>
         <hadoop.client.version>2.6.5</hadoop.client.version>
         <hive.orc.version>2.1.1</hive.orc.version>
     </properties>
