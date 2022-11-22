@@ -10,7 +10,7 @@
 
     <properties>
         <es.transport.version>7.6.2</es.transport.version>
-        <fastjson.version>1.2.38</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <lombok.version>1.16.10</lombok.version>
         <guava.version>18.0</guava.version>
         <log4j.core.version>2.6.2</log4j.core.version>
